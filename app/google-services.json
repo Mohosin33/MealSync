@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "995895257998",
+    "project_id": "mealsync-19c5f",
+    "storage_bucket": "mealsync-19c5f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:995895257998:android:ee2b7e8926647caea012df",
+        "android_client_info": {
+          "package_name": "com.example.mealsync"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "995895257998-3qb29f4kijg0pd81o2gvbi11jdiaf223.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mealsync",
+            "certificate_hash": "8008ba901bed20588c89b883f61c816d9d56c961"
+          }
+        },
+        {
+          "client_id": "995895257998-dlghpamhv3k4h09rhhrba7vndmi3ov44.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCBuoz0fb4ukrHNoBFxKy7hgfDjGo842Og"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "995895257998-dlghpamhv3k4h09rhhrba7vndmi3ov44.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

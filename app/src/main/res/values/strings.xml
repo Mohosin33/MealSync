@@ -1,0 +1,57 @@
+<resources>
+    <string name="app_name">MealSync</string>
+    <string name="cd_logo">MealSync logo</string>
+    <string name="splash_tagline">Smart mess management</string>
+
+    <string name="role_member">Member</string>
+    <string name="role_manager">Manager</string>
+    <string name="welcome_member_title">Welcome, Member</string>
+    <string name="welcome_member_subtitle">Join your mess with a six-digit invitation code, choose your daily meals and follow your balance.</string>
+    <string name="welcome_manager_title">Welcome, Manager</string>
+    <string name="welcome_manager_subtitle">Create a mess, invite members, record expenses and deposits, and close each month.</string>
+
+    <string name="continue_phone">Continue with phone</string>
+    <string name="continue_google">Continue with Google</string>
+    <string name="role_note">This switch only chooses your starting path. Your real role is set when you create or join a mess.</string>
+    <string name="signin_next_step">Google sign-in is added in a later step.</string>
+
+    <!-- Phone login -->
+    <string name="cd_back">Back</string>
+    <string name="cd_otp_input">Verification code</string>
+    <string name="phone_login_title">Sign in with phone</string>
+    <string name="phone_login_subtitle_member">Use your mobile number to join a mess</string>
+    <string name="phone_login_subtitle_manager">Use your mobile number to manage your mess</string>
+    <string name="phone_panel_title">Enter your mobile number</string>
+    <string name="phone_panel_body">We will send a six-digit code to verify it.</string>
+    <string name="phone_hint">Mobile number</string>
+    <string name="phone_helper">Bangladesh: 01XXXXXXXXX. Other countries: start with + and the country code.</string>
+    <string name="send_code">Send code</string>
+    <string name="otp_title">Enter the 6-digit code</string>
+    <string name="otp_sent_to">We sent a code to %1$s</string>
+    <string name="verify_continue">Verify and continue</string>
+    <string name="resend_in">Resend code in %1$d:%2$02d</string>
+    <string name="resend_code">Resend code</string>
+    <string name="change_number">Change number</string>
+    <string name="signed_in">You are signed in</string>
+
+    <!-- Errors -->
+    <string name="err_invalid_phone">Enter a valid mobile number.</string>
+    <string name="err_code_incomplete">Enter all 6 digits.</string>
+    <string name="err_wrong_code">That code is not correct. Try again.</string>
+    <string name="err_code_expired">This code has expired. Request a new one.</string>
+    <string name="err_network">No internet connection. Check your network and try again.</string>
+    <string name="err_too_many">Too many attempts. Please wait a while and try again.</string>
+    <string name="err_no_verification">Request a code first.</string>
+    <string name="err_phone_auth_disabled">Phone sign-in is disabled in Firebase Console. Enable Phone provider in Authentication settings.</string>
+    <string name="err_app_not_authorized">App not authorized by Firebase. Check SHA-1 fingerprint or Play Integrity in Firebase Console.</string>
+    <string name="err_quota_exceeded">SMS quota exceeded. Try again later or use a Firebase test phone number.</string>
+    <string name="err_internal_error">Firebase internal error. Ensure Phone Auth is enabled in Firebase Console and SHA-1 / test numbers are set up.</string>
+    <string name="err_generic">Something went wrong (%1$s). Please try again.</string>
+
+    <!-- Temporary home screen -->
+    <string name="main_title">MealSync</string>
+    <string name="signed_in_as">Signed in as %1$s</string>
+    <string name="main_placeholder_note">Temporary screen. The real dashboard is built on Day 3.</string>
+    <string name="logout">Log out</string>
+    <string name="error_title">Something went wrong</string>
+</resources>
