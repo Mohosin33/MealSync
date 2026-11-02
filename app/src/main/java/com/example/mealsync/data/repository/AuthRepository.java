@@ -1,19 +1,10 @@
 package com.example.mealsync.data.repository;
 
-import android.app.Activity;
-
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.google.firebase.FirebaseException;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.PhoneAuthCredential;
-import com.google.firebase.auth.PhoneAuthOptions;
-import com.google.firebase.auth.PhoneAuthProvider;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * The only class that talks to Firebase Authentication.
@@ -21,17 +12,19 @@ import java.util.concurrent.TimeUnit;
  */
 public class AuthRepository {
 
-    public interface PhoneVerificationCallback {
-        void onCodeSent(String verificationId, PhoneAuthProvider.ForceResendingToken token);
-
-        void onAutoVerified(PhoneAuthCredential credential);
-
-        void onFailed(Exception error);
+    public interface ActionCallback {
+        void onSuccess();
+        void onFailure(Exception error);
     }
 
     public interface SignInCallback {
         void onSuccess(FirebaseUser user);
+        void onFailure(Exception error);
+    }
 
+    public interface EmailSignInCallback {
+        void onSuccess(FirebaseUser user);
+        void onUnverifiedEmail(String email);
         void onFailure(Exception error);
     }
 
@@ -50,46 +43,66 @@ public class AuthRepository {
         auth.signOut();
     }
 
-    /** Asks Firebase to send a code. Pass a resend token to request a new code. */
-    public void startPhoneVerification(Activity activity, String e164Phone,
-                                       @Nullable PhoneAuthProvider.ForceResendingToken resendToken,
-                                       PhoneVerificationCallback callback) {
-        PhoneAuthOptions.Builder builder = PhoneAuthOptions.newBuilder(auth)
-                .setPhoneNumber(e164Phone)
-                .setTimeout(60L, TimeUnit.SECONDS)
-                .setActivity(activity)
-                .setCallbacks(new PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                    @Override
-                    public void onVerificationCompleted(@NonNull PhoneAuthCredential credential) {
-                        callback.onAutoVerified(credential);
-                    }
-
-                    @Override
-                    public void onVerificationFailed(@NonNull FirebaseException e) {
-                        callback.onFailed(e);
-                    }
-
-                    @Override
-                    public void onCodeSent(@NonNull String verificationId,
-                                           @NonNull PhoneAuthProvider.ForceResendingToken token) {
-                        callback.onCodeSent(verificationId, token);
+    public void registerWithEmail(String email, String password, ActionCallback callback) {
+        auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
+                FirebaseUser user = task.getResult().getUser();
+                user.sendEmailVerification().addOnCompleteListener(verifyTask -> {
+                    auth.signOut();
+                    if (verifyTask.isSuccessful()) {
+                        callback.onSuccess();
+                    } else {
+                        callback.onFailure(verifyTask.getException());
                     }
                 });
-        if (resendToken != null) {
-            builder.setForceResendingToken(resendToken);
-        }
-        PhoneAuthProvider.verifyPhoneNumber(builder.build());
+            } else {
+                callback.onFailure(task.getException());
+            }
+        });
     }
 
-    public PhoneAuthCredential buildCredential(String verificationId, String code) {
-        return PhoneAuthProvider.getCredential(verificationId, code);
+    public void signInWithEmail(String email, String password, EmailSignInCallback callback) {
+        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
+                FirebaseUser user = task.getResult().getUser();
+                user.reload().addOnCompleteListener(reloadTask -> {
+                    if (user.isEmailVerified()) {
+                        user.getIdToken(true).addOnCompleteListener(tokenTask -> callback.onSuccess(user));
+                    } else {
+                        String userEmail = user.getEmail() != null ? user.getEmail() : email;
+                        auth.signOut();
+                        callback.onUnverifiedEmail(userEmail);
+                    }
+                });
+            } else {
+                callback.onFailure(task.getException());
+            }
+        });
+    }
+
+    public void resendVerificationEmail(String email, String password, ActionCallback callback) {
+        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
+                FirebaseUser user = task.getResult().getUser();
+                user.sendEmailVerification().addOnCompleteListener(verifyTask -> {
+                    auth.signOut();
+                    if (verifyTask.isSuccessful()) {
+                        callback.onSuccess();
+                    } else {
+                        callback.onFailure(verifyTask.getException());
+                    }
+                });
+            } else {
+                callback.onFailure(task.getException());
+            }
+        });
     }
 
     public void signInWithCredential(AuthCredential credential, SignInCallback callback) {
         auth.signInWithCredential(credential).addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null
-                    && task.getResult().getUser() != null) {
-                callback.onSuccess(task.getResult().getUser());
+            if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
+                FirebaseUser user = task.getResult().getUser();
+                user.getIdToken(true).addOnCompleteListener(tokenTask -> callback.onSuccess(user));
             } else {
                 callback.onFailure(task.getException());
             }

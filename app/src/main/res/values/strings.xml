@@ -10,42 +10,98 @@
     <string name="welcome_manager_title">Welcome, Manager</string>
     <string name="welcome_manager_subtitle">Create a mess, invite members, record expenses and deposits, and close each month.</string>
 
-    <string name="continue_phone">Continue with phone</string>
-    <string name="continue_google">Continue with Google</string>
+    <string name="continue_email">Continue with Email</string>
+    <string name="continue_google">Sign in with Google</string>
     <string name="role_note">This switch only chooses your starting path. Your real role is set when you create or join a mess.</string>
-    <string name="signin_next_step">Google sign-in is added in a later step.</string>
 
-    <!-- Phone login -->
     <string name="cd_back">Back</string>
-    <string name="cd_otp_input">Verification code</string>
-    <string name="phone_login_title">Sign in with phone</string>
-    <string name="phone_login_subtitle_member">Use your mobile number to join a mess</string>
-    <string name="phone_login_subtitle_manager">Use your mobile number to manage your mess</string>
-    <string name="phone_panel_title">Enter your mobile number</string>
-    <string name="phone_panel_body">We will send a six-digit code to verify it.</string>
-    <string name="phone_hint">Mobile number</string>
-    <string name="phone_helper">Bangladesh: 01XXXXXXXXX. Other countries: start with + and the country code.</string>
-    <string name="send_code">Send code</string>
-    <string name="otp_title">Enter the 6-digit code</string>
-    <string name="otp_sent_to">We sent a code to %1$s</string>
-    <string name="verify_continue">Verify and continue</string>
-    <string name="resend_in">Resend code in %1$d:%2$02d</string>
-    <string name="resend_code">Resend code</string>
-    <string name="change_number">Change number</string>
-    <string name="signed_in">You are signed in</string>
+
+    <!-- Login & Registration -->
+    <string name="login_title">Welcome back</string>
+    <string name="login_subtitle_member">Sign in to manage your meals and mess balance</string>
+    <string name="login_subtitle_manager">Sign in to manage your mess operations</string>
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Sign up to get started with MealSync</string>
+
+    <string name="email_hint">Email address</string>
+    <string name="password_hint">Password</string>
+    <string name="confirm_password_hint">Confirm password</string>
+    <string name="login_btn">Sign In</string>
+    <string name="register_btn">Register</string>
+    <string name="resend_verification_email">Resend verification email</string>
+    <string name="resend_action">Resend</string>
+    <string name="or_divider">OR</string>
+    <string name="already_have_account">Already have an account? Sign In</string>
+    <string name="dont_have_account">Don\'t have an account? Register</string>
+
+    <string name="registration_success_title">Registration Successful</string>
+    <string name="registration_success_msg">A verification link has been sent to %1$s. Please verify your email before signing in.</string>
+    <string name="verification_email_sent">Verification email sent to %1$s.</string>
+
+    <!-- Choose Screen -->
+    <string name="choose_title">Get Started</string>
+    <string name="choose_subtitle">Create a new mess as a manager or join an existing mess as a member.</string>
+    <string name="create_mess_option_title">Create a Mess</string>
+    <string name="create_mess_option_desc">Set up a new mess, invite members with a 6-digit code, and manage meal logs.</string>
+    <string name="join_mess_option_title">Join a Mess</string>
+    <string name="join_mess_option_desc">Enter the 6-digit invitation code provided by your mess manager.</string>
+
+    <!-- Create Mess Screen -->
+    <string name="create_mess_title">Create New Mess</string>
+    <string name="create_mess_subtitle">Fill in the details to set up your mess.</string>
+    <string name="mess_name_hint">Mess Name</string>
+    <string name="manager_name_hint">Your Full Name (Manager)</string>
+    <string name="timezone_hint">Timezone</string>
+    <string name="cutoff_time_hint">Meal Cutoff Time (e.g. 21:00)</string>
+    <string name="create_mess_btn">Create Mess</string>
+    <string name="err_empty_mess_name">Enter a mess name.</string>
+    <string name="err_empty_manager_name">Enter your full name.</string>
+
+    <!-- Join Mess Screen -->
+    <string name="join_mess_title">Join Mess</string>
+    <string name="join_mess_subtitle">Enter the 6-digit invitation code and your display name.</string>
+    <string name="otp_title">Enter the 6-digit invitation code</string>
+    <string name="display_name_hint">Your Full Name</string>
+    <string name="join_mess_btn">Join Mess</string>
+    <string name="err_invalid_code">Enter all 6 digits of the invitation code.</string>
+    <string name="err_empty_display_name">Enter your display name.</string>
+
+    <!-- Invitation Code Card -->
+    <string name="invitation_code_card_title">Invitation Code</string>
+    <string name="code_copied">Code copied to clipboard!</string>
+    <string name="copy_code">Copy Code</string>
+    <string name="share_code">Share Code</string>
+    <string name="revoke_code">Revoke Code</string>
+    <string name="regenerate_code">Regenerate Code</string>
+    <string name="code_revoked">Invitation code revoked.</string>
+    <string name="code_regenerated">New invitation code generated: %1$s</string>
+    <string name="share_subject">Join my mess on MealSync!</string>
+    <string name="share_text">Use this 6-digit invitation code to join our mess on MealSync: %1$s</string>
+
+    <!-- Navigation & Tabs -->
+    <string name="nav_home">Home</string>
+    <string name="nav_members">Members</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Members Screen -->
+    <string name="members_title">Mess Members</string>
+    <string name="remove_member">Remove</string>
+    <string name="confirm_remove_member_title">Remove Member</string>
+    <string name="confirm_remove_member_msg">Are you sure you want to remove %1$s from the mess?</string>
+
+    <!-- Profile Screen -->
+    <string name="profile_title">My Profile</string>
+    <string name="role_badge_manager">MANAGER</string>
+    <string name="role_badge_member">MEMBER</string>
 
     <!-- Errors -->
-    <string name="err_invalid_phone">Enter a valid mobile number.</string>
-    <string name="err_code_incomplete">Enter all 6 digits.</string>
-    <string name="err_wrong_code">That code is not correct. Try again.</string>
-    <string name="err_code_expired">This code has expired. Request a new one.</string>
+    <string name="err_empty_email">Enter your email address.</string>
+    <string name="err_invalid_email">Enter a valid email address.</string>
+    <string name="err_empty_password">Enter your password.</string>
+    <string name="err_short_password">Password must be at least 6 characters.</string>
+    <string name="err_password_mismatch">Passwords do not match.</string>
+    <string name="err_email_not_verified">Your email is not verified yet. Please check your inbox or resend the verification link.</string>
     <string name="err_network">No internet connection. Check your network and try again.</string>
-    <string name="err_too_many">Too many attempts. Please wait a while and try again.</string>
-    <string name="err_no_verification">Request a code first.</string>
-    <string name="err_phone_auth_disabled">Phone sign-in is disabled in Firebase Console. Enable Phone provider in Authentication settings.</string>
-    <string name="err_app_not_authorized">App not authorized by Firebase. Check SHA-1 fingerprint or Play Integrity in Firebase Console.</string>
-    <string name="err_quota_exceeded">SMS quota exceeded. Try again later or use a Firebase test phone number.</string>
-    <string name="err_internal_error">Firebase internal error. Ensure Phone Auth is enabled in Firebase Console and SHA-1 / test numbers are set up.</string>
     <string name="err_generic">Something went wrong (%1$s). Please try again.</string>
 
     <!-- Temporary home screen -->

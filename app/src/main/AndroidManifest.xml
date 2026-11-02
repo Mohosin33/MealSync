@@ -29,7 +29,26 @@
             android:exported="false" />
 
         <activity
-            android:name=".ui.auth.PhoneLoginActivity"
+            android:name=".ui.auth.LoginActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.auth.RegisterActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.mess.ChooseActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.mess.CreateMessActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.mess.JoinMessActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 

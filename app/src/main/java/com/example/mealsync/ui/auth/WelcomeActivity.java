@@ -31,8 +31,11 @@ import androidx.credentials.exceptions.GetCredentialException;
 
 import com.example.mealsync.MainActivity;
 import com.example.mealsync.R;
+import com.example.mealsync.data.models.UserProfile;
 import com.example.mealsync.data.repository.AuthRepository;
+import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityWelcomeBinding;
+import com.example.mealsync.ui.mess.ChooseActivity;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import com.google.android.material.snackbar.Snackbar;
@@ -206,7 +209,7 @@ public class WelcomeActivity extends AppCompatActivity {
 
     private void setupButtons() {
         binding.btnPhone.setOnClickListener(v -> {
-            Intent intent = new Intent(this, PhoneLoginActivity.class);
+            Intent intent = new Intent(this, LoginActivity.class);
             intent.putExtra(AuthExtras.EXTRA_ROLE,
                     managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
             startActivity(intent);
@@ -282,12 +285,27 @@ public class WelcomeActivity extends AppCompatActivity {
         authRepository.signInWithCredential(credential, new AuthRepository.SignInCallback() {
             @Override
             public void onSuccess(FirebaseUser user) {
-                Intent intent = new Intent(WelcomeActivity.this, MainActivity.class);
-                intent.putExtra(AuthExtras.EXTRA_ROLE,
-                        managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                finish();
+                new MessRepository().getUserProfile(user.getUid(), new MessRepository.UserProfileCallback() {
+                    @Override
+                    public void onSuccess(UserProfile profile) {
+                        Class<?> target = (profile != null && profile.getMessId() != null && !profile.getMessId().trim().isEmpty())
+                                ? MainActivity.class : ChooseActivity.class;
+                        Intent intent = new Intent(WelcomeActivity.this, target);
+                        intent.putExtra(AuthExtras.EXTRA_ROLE, managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    }
+
+                    @Override
+                    public void onFailure(Exception error) {
+                        Intent intent = new Intent(WelcomeActivity.this, ChooseActivity.class);
+                        intent.putExtra(AuthExtras.EXTRA_ROLE, managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                        startActivity(intent);
+                        finish();
+                    }
+                });
             }
 
             @Override

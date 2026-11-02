@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedInAndVerified() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return isSignedInAndVerified() && request.auth.uid == uid;
+    }
+
+    function isMessManager(messId) {
+      return isSignedInAndVerified() &&
+        exists(/databases/$(database)/documents/messes/$(messId)/members/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/messes/$(messId)/members/$(request.auth.uid)).data.role == 'manager';
+    }
+
+    function isMessMember(messId) {
+      return isSignedInAndVerified() &&
+        exists(/databases/$(database)/documents/messes/$(messId)/members/$(request.auth.uid));
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isSignedInAndVerified();
+      allow create, update: if isUser(userId);
+    }
+
+    // Invitation Codes collection
+    match /invitationCodes/{code} {
+      allow get: if isSignedInAndVerified() && code.matches('^[0-9]{6}$');
+      allow list: if false;
+      allow create: if isSignedInAndVerified() && code.matches('^[0-9]{6}$');
+      allow update: if isSignedInAndVerified() &&
+        (isMessManager(resource.data.messId) || request.auth.uid == resource.data.createdBy);
+    }
+
+    // Messes collection
+    match /messes/{messId} {
+      allow read: if isMessMember(messId);
+      allow create: if isSignedInAndVerified();
+      allow update: if isMessManager(messId);
+
+      // Subcollection: Members
+      match /members/{memberUid} {
+        allow read: if isMessMember(messId);
+        allow create: if isSignedInAndVerified() && request.auth.uid == memberUid;
+        allow update: if isUser(memberUid);
+        allow delete: if isMessManager(messId) || isUser(memberUid);
+      }
+    }
+  }
+}

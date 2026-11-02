@@ -10,14 +10,19 @@ import androidx.core.app.ActivityOptionsCompat;
 import androidx.core.view.WindowCompat;
 
 import com.example.mealsync.MainActivity;
+import com.example.mealsync.data.models.UserProfile;
 import com.example.mealsync.data.repository.AuthRepository;
+import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivitySplashBinding;
 import com.example.mealsync.ui.auth.WelcomeActivity;
+import com.example.mealsync.ui.mess.ChooseActivity;
+import com.google.firebase.auth.FirebaseUser;
 
 /**
- * Animated launch screen. Plays a short intro, then opens the next screen.
- * A signed-in user goes straight to MainActivity; otherwise the welcome screen opens.
- * Day 2 will also check whether the user belongs to a mess.
+ * Animated launch screen. Checks authentication and mess membership to route:
+ * Signed-in with a mess -> MainActivity
+ * Signed-in without a mess -> ChooseActivity
+ * Signed-out -> WelcomeActivity
  */
 public class SplashActivity extends AppCompatActivity {
 
@@ -86,9 +91,28 @@ public class SplashActivity extends AppCompatActivity {
             return;
         }
         navigated = true;
-        Class<?> next = new AuthRepository().getCurrentUser() != null
-                ? MainActivity.class : WelcomeActivity.class;
-        Intent intent = new Intent(this, next);
+        FirebaseUser user = new AuthRepository().getCurrentUser();
+        if (user != null) {
+            new MessRepository().getUserProfile(user.getUid(), new MessRepository.UserProfileCallback() {
+                @Override
+                public void onSuccess(UserProfile profile) {
+                    Class<?> next = (profile != null && profile.getMessId() != null && !profile.getMessId().trim().isEmpty())
+                            ? MainActivity.class : ChooseActivity.class;
+                    openActivity(next);
+                }
+
+                @Override
+                public void onFailure(Exception error) {
+                    openActivity(ChooseActivity.class);
+                }
+            });
+        } else {
+            openActivity(WelcomeActivity.class);
+        }
+    }
+
+    private void openActivity(Class<?> target) {
+        Intent intent = new Intent(this, target);
         startActivity(intent, ActivityOptionsCompat.makeCustomAnimation(
                 this, android.R.anim.fade_in, android.R.anim.fade_out).toBundle());
         finish();
@@ -96,7 +120,6 @@ public class SplashActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        // Stop pending work so nothing runs after the screen is gone (prevents leaks).
         binding.getRoot().removeCallbacks(openNext);
         binding.logoContainer.animate().cancel();
         binding.imgLogo.animate().cancel();
