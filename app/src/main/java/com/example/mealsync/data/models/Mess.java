@@ -1,5 +1,8 @@
 package com.example.mealsync.data.models;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
 public class Mess {
     private String messId;
     private String name;
@@ -8,13 +11,14 @@ public class Mess {
     private String timezone;
     private String cutoffTime;
     private String invitationCode;
+    private int utcOffsetMinutes;
     private long createdAt;
 
     public Mess() {
     }
 
     public Mess(String messId, String name, String managerUid, String managerName,
-                String timezone, String cutoffTime, String invitationCode, long createdAt) {
+                String timezone, String cutoffTime, String invitationCode, int utcOffsetMinutes, long createdAt) {
         this.messId = messId;
         this.name = name;
         this.managerUid = managerUid;
@@ -22,7 +26,18 @@ public class Mess {
         this.timezone = timezone;
         this.cutoffTime = cutoffTime;
         this.invitationCode = invitationCode;
+        this.utcOffsetMinutes = utcOffsetMinutes;
         this.createdAt = createdAt;
+    }
+
+    public static int calculateUtcOffsetMinutes(String timezoneStr) {
+        try {
+            ZoneId zoneId = ZoneId.of(timezoneStr != null ? timezoneStr.trim() : "Asia/Dhaka");
+            ZonedDateTime now = ZonedDateTime.now(zoneId);
+            return now.getOffset().getTotalSeconds() / 60;
+        } catch (Exception e) {
+            return 360; // Default Asia/Dhaka (+06:00)
+        }
     }
 
     public String getMessId() {
@@ -79,6 +94,14 @@ public class Mess {
 
     public void setInvitationCode(String invitationCode) {
         this.invitationCode = invitationCode;
+    }
+
+    public int getUtcOffsetMinutes() {
+        return utcOffsetMinutes;
+    }
+
+    public void setUtcOffsetMinutes(int utcOffsetMinutes) {
+        this.utcOffsetMinutes = utcOffsetMinutes;
     }
 
     public long getCreatedAt() {

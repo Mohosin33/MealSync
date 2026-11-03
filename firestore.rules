@@ -21,10 +21,29 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/messes/$(messId)/members/$(request.auth.uid));
     }
 
+    function formatDate(t) {
+      let yearStr = string(t.year());
+      let monthStr = t.month() < 10 ? '0' + string(t.month()) : string(t.month());
+      let dayStr = t.day() < 10 ? '0' + string(t.day()) : string(t.day());
+      return yearStr + '-' + monthStr + '-' + dayStr;
+    }
+
+    function formatTime(t) {
+      let hourStr = t.hours() < 10 ? '0' + string(t.hours()) : string(t.hours());
+      let minStr = t.minutes() < 10 ? '0' + string(t.minutes()) : string(t.minutes());
+      return hourStr + ':' + minStr;
+    }
+
     // Users collection
     match /users/{userId} {
       allow read: if isSignedInAndVerified();
-      allow create, update: if isUser(userId);
+      allow create: if isUser(userId);
+      allow update: if isUser(userId) || (
+        isSignedInAndVerified() &&
+        resource.data.messId != null &&
+        isMessManager(resource.data.messId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['messId', 'role'])
+      );
     }
 
     // Invitation Codes collection
@@ -48,6 +67,34 @@ service cloud.firestore {
         allow create: if isSignedInAndVerified() && request.auth.uid == memberUid;
         allow update: if isUser(memberUid);
         allow delete: if isMessManager(messId) || isUser(memberUid);
+      }
+
+      // Subcollection: Meals
+      match /meals/{mealId} {
+        allow read: if isMessMember(messId) && (resource == null || resource.data.uid == request.auth.uid || isMessManager(messId));
+
+        allow create, update: if isMessMember(messId) &&
+          request.resource.data.uid == request.auth.uid &&
+          mealId == request.resource.data.date + '_' + request.auth.uid &&
+          request.resource.data.keys().hasOnly(['date', 'uid', 'lunch', 'dinner', 'guests', 'updatedAt']) &&
+          request.resource.data.lunch is bool &&
+          request.resource.data.dinner is bool &&
+          request.resource.data.guests is int &&
+          request.resource.data.guests >= 0 &&
+          request.resource.data.guests <= 10 &&
+          request.resource.data.updatedAt == request.time &&
+          // Timezone cutoff validation
+          exists(/databases/$(database)/documents/messes/$(messId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)).data.utcOffsetMinutes is int &&
+          get(/databases/$(database)/documents/messes/$(messId)).data.cutoffTime is string &&
+          request.resource.data.date == formatDate(
+            request.time + duration.value(get(/databases/$(database)/documents/messes/$(messId)).data.utcOffsetMinutes, 'm') + duration.value(24, 'h')
+          ) &&
+          formatTime(
+            request.time + duration.value(get(/databases/$(database)/documents/messes/$(messId)).data.utcOffsetMinutes, 'm')
+          ) < get(/databases/$(database)/documents/messes/$(messId)).data.cutoffTime;
+
+        allow delete: if false;
       }
     }
   }

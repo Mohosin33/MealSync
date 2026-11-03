@@ -104,8 +104,9 @@ public class MessRepository {
 
         long now = System.currentTimeMillis();
         long expiresAt = now + SEVEN_DAYS_MS;
+        int utcOffsetMinutes = Mess.calculateUtcOffsetMinutes(timezone);
 
-        Mess mess = new Mess(messId, messName, uid, managerName, timezone, cutoffTime, code, now);
+        Mess mess = new Mess(messId, messName, uid, managerName, timezone, cutoffTime, code, utcOffsetMinutes, now);
         Member member = new Member(uid, managerName, email, "manager", now);
         InvitationCode invitationCode = new InvitationCode(code, messId, uid, now, expiresAt, true);
 
@@ -130,6 +131,42 @@ public class MessRepository {
                 callback.onFailure(task.getException());
             }
         });
+    }
+
+    public void updateMessSettings(String messId, String name, String timezone, String cutoffTime, ActionCallback callback) {
+        int utcOffsetMinutes = Mess.calculateUtcOffsetMinutes(timezone);
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", name);
+        updates.put("timezone", timezone);
+        updates.put("cutoffTime", cutoffTime);
+        updates.put("utcOffsetMinutes", utcOffsetMinutes);
+
+        db.collection("messes").document(messId)
+                .update(updates)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        callback.onSuccess();
+                    } else {
+                        callback.onFailure(task.getException());
+                    }
+                });
+    }
+
+    public void ensureMessSetup(Mess mess, ActionCallback callback) {
+        if (mess == null || mess.getMessId() == null) {
+            return;
+        }
+        int offset = Mess.calculateUtcOffsetMinutes(mess.getTimezone());
+        db.collection("messes").document(mess.getMessId())
+                .update("utcOffsetMinutes", offset)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (callback != null) callback.onSuccess();
+                    } else {
+                        if (callback != null) callback.onFailure(task.getException());
+                    }
+                });
     }
 
     public void joinMess(String code, String displayName, JoinMessCallback callback) {

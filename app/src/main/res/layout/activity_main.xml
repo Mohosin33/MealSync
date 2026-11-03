@@ -13,7 +13,7 @@
         android:layout_height="match_parent"
         android:layout_above="@id/bottomNav">
 
-        <!-- TAB 1: HOME -->
+        <!-- TAB 1: HOME (DASHBOARD) -->
         <ScrollView
             android:id="@+id/tabHome"
             android:layout_width="match_parent"
@@ -37,8 +37,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="-180dp"
                     android:orientation="vertical"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="24dp"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
                     android:paddingBottom="24dp">
 
                     <TextView
@@ -46,23 +46,209 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:textColor="@color/white"
-                        android:textSize="28sp"
+                        android:textSize="26sp"
                         android:textStyle="bold"
                         tools:text="Green House Mess" />
 
                     <TextView
-                        android:id="@+id/tvHomeSubDetails"
+                        android:id="@+id/tvHomeTodayDate"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:textColor="#CCFFFFFF"
                         android:textSize="14sp"
-                        tools:text="Timezone: Asia/Dhaka | Cutoff: 21:00" />
+                        tools:text="Today: 2025-05-10" />
 
+                    <!-- Setup Required Notice -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardSetupNotice"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:visibility="gone"
+                        app:cardBackgroundColor="#FFF3CD"
+                        app:cardCornerRadius="14dp"
+                        app:strokeColor="#FFEEBA"
+                        app:strokeWidth="1dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="14dp"
+                            android:text="@string/setup_required_notice"
+                            android:textColor="#856404"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Tomorrow's Meal Controls Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardTomorrowMeals"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/ms_divider"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="20dp">
+
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+
+                                <TextView
+                                    android:id="@+id/tvTomorrowHeader"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="18sp"
+                                    android:textStyle="bold"
+                                    tools:text="Tomorrow's Meals (2025-05-11)" />
+
+                                <TextView
+                                    android:id="@+id/tvMealPending"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:text="Syncing..."
+                                    android:textColor="@color/ms_teal"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold"
+                                    android:visibility="gone" />
+                            </RelativeLayout>
+
+                            <TextView
+                                android:id="@+id/tvCutoffStatus"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:textColor="@color/ms_teal"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:text="Closes in 3h 20m" />
+
+                            <com.google.android.material.divider.MaterialDivider
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:layout_marginBottom="12dp" />
+
+                            <!-- Lunch Switch -->
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_centerVertical="true"
+                                    android:text="Lunch"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+
+                                <com.google.android.material.materialswitch.MaterialSwitch
+                                    android:id="@+id/switchLunch"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true" />
+                            </RelativeLayout>
+
+                            <!-- Dinner Switch -->
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_centerVertical="true"
+                                    android:text="Dinner"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+
+                                <com.google.android.material.materialswitch.MaterialSwitch
+                                    android:id="@+id/switchDinner"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true" />
+                            </RelativeLayout>
+
+                            <!-- Guest Stepper -->
+                            <RelativeLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_centerVertical="true"
+                                    android:text="Guest Meals"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+
+                                <LinearLayout
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_alignParentEnd="true"
+                                    android:gravity="center_vertical"
+                                    android:orientation="horizontal">
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnGuestMinus"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="40dp"
+                                        android:layout_height="40dp"
+                                        android:insetLeft="0dp"
+                                        android:insetTop="0dp"
+                                        android:insetRight="0dp"
+                                        android:insetBottom="0dp"
+                                        android:padding="0dp"
+                                        android:text="-"
+                                        android:textSize="18sp" />
+
+                                    <TextView
+                                        android:id="@+id/tvGuestCount"
+                                        android:layout_width="32dp"
+                                        android:layout_height="wrap_content"
+                                        android:gravity="center"
+                                        android:text="0"
+                                        android:textColor="@color/ms_text_primary"
+                                        android:textSize="16sp"
+                                        android:textStyle="bold" />
+
+                                    <com.google.android.material.button.MaterialButton
+                                        android:id="@+id/btnGuestPlus"
+                                        style="@style/Widget.Material3.Button.OutlinedButton"
+                                        android:layout_width="40dp"
+                                        android:layout_height="40dp"
+                                        android:insetLeft="0dp"
+                                        android:insetTop="0dp"
+                                        android:insetRight="0dp"
+                                        android:insetBottom="0dp"
+                                        android:padding="0dp"
+                                        android:text="+"
+                                        android:textSize="18sp" />
+                                </LinearLayout>
+                            </RelativeLayout>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Monthly Meal Counts -->
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="24dp"
+                        android:layout_marginTop="16dp"
                         app:cardCornerRadius="16dp"
                         app:cardElevation="2dp"
                         app:strokeColor="@color/ms_divider"
@@ -77,25 +263,292 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Welcome to MealSync"
+                                android:text="Your Counts This Month"
                                 android:textColor="@color/ms_text_primary"
-                                android:textSize="18sp"
+                                android:textSize="16sp"
                                 android:textStyle="bold" />
 
-                            <TextView
+                            <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/main_placeholder_note"
-                                android:textColor="@color/ms_text_secondary"
-                                android:textSize="14sp" />
+                                android:layout_marginTop="12dp"
+                                android:orientation="horizontal">
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/tvMonthLunches"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0"
+                                        android:textColor="@color/ms_teal"
+                                        android:textSize="22sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Lunches"
+                                        android:textColor="@color/ms_text_secondary"
+                                        android:textSize="12sp" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/tvMonthDinners"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0"
+                                        android:textColor="@color/ms_teal"
+                                        android:textSize="22sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Dinners"
+                                        android:textColor="@color/ms_text_secondary"
+                                        android:textSize="12sp" />
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:gravity="center"
+                                    android:orientation="vertical">
+
+                                    <TextView
+                                        android:id="@+id/tvMonthGuests"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="0"
+                                        android:textColor="@color/ms_teal"
+                                        android:textSize="22sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Guests"
+                                        android:textColor="@color/ms_text_secondary"
+                                        android:textSize="12sp" />
+                                </LinearLayout>
+                            </LinearLayout>
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Meal Rate & Balance (Unavailable) -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/ms_divider"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:padding="20dp">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Meal Rate"
+                                    android:textColor="@color/ms_text_secondary"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="Unavailable"
+                                    android:textColor="@color/ms_text_secondary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Personal Balance"
+                                    android:textColor="@color/ms_text_secondary"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="Unavailable"
+                                    android:textColor="@color/ms_text_secondary"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Manager Only: Tomorrow's Day Totals -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardManagerDayTotals"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:visibility="gone"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="@color/ms_divider"
+                        app:strokeWidth="1dp"
+                        tools:visibility="visible">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="20dp">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Tomorrow's Total Meals (Mess)"
+                                android:textColor="@color/ms_text_primary"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/tvTotalLunch"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="14sp"
+                                    tools:text="Lunch: 5" />
+
+                                <TextView
+                                    android:id="@+id/tvTotalDinner"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="14sp"
+                                    tools:text="Dinner: 8" />
+
+                                <TextView
+                                    android:id="@+id/tvTotalGuests"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="14sp"
+                                    tools:text="Guests: 2" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvGrandTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:textColor="@color/ms_teal"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                tools:text="Grand Total: 15 meals" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
                 </LinearLayout>
             </LinearLayout>
         </ScrollView>
 
-        <!-- TAB 2: MEMBERS & CODE -->
+        <!-- TAB 2: MEALS HISTORY -->
+        <LinearLayout
+            android:id="@+id/tabMeals"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="140dp"
+                android:background="@drawable/bg_gradient_member" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="-100dp"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Meal History"
+                    android:textColor="@color/white"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/progressMeals"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="32dp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/tvMealsEmpty"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="48dp"
+                    android:text="No meal history found"
+                    android:textColor="@color/ms_text_secondary"
+                    android:textSize="16sp"
+                    android:visibility="gone" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvMealHistory"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginTop="16dp"
+                    android:overScrollMode="never"
+                    tools:listitem="@layout/item_meal_history" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- TAB 3: MEMBERS & CODE -->
         <LinearLayout
             android:id="@+id/tabMembers"
             android:layout_width="match_parent"
@@ -113,8 +566,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginTop="-100dp"
                 android:orientation="vertical"
-                android:paddingStart="24dp"
-                android:paddingEnd="24dp">
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -250,7 +703,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- TAB 3: PROFILE -->
+        <!-- TAB 4: PROFILE -->
         <LinearLayout
             android:id="@+id/tabProfile"
             android:layout_width="match_parent"
@@ -268,8 +721,8 @@
                 android:layout_height="match_parent"
                 android:layout_marginTop="-140dp"
                 android:orientation="vertical"
-                android:paddingStart="24dp"
-                android:paddingEnd="24dp"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp"
                 android:paddingBottom="24dp">
 
                 <TextView
@@ -329,11 +782,23 @@
                             tools:text="MANAGER" />
 
                         <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSettings"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:minHeight="52dp"
+                            android:text="@string/settings_title"
+                            android:visibility="gone"
+                            app:cornerRadius="12dp"
+                            tools:visibility="visible" />
+
+                        <com.google.android.material.button.MaterialButton
                             android:id="@+id/btnLogout"
                             style="@style/Widget.Material3.Button.OutlinedButton"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="24dp"
+                            android:layout_marginTop="12dp"
                             android:minHeight="52dp"
                             android:text="@string/logout"
                             android:textColor="@color/ms_negative"

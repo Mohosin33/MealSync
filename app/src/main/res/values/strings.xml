@@ -78,8 +78,17 @@
     <string name="share_subject">Join my mess on MealSync!</string>
     <string name="share_text">Use this 6-digit invitation code to join our mess on MealSync: %1$s</string>
 
+    <!-- Mess Settings -->
+    <string name="settings_title">Mess Settings</string>
+    <string name="settings_subtitle">Edit mess details, meal cutoff time, and timezone.</string>
+    <string name="save_settings_btn">Save Settings</string>
+    <string name="settings_saved">Settings updated successfully.</string>
+    <string name="setup_required_notice">The manager must open the app to finish setup.</string>
+    <string name="select_cutoff_time">Select Cutoff Time</string>
+
     <!-- Navigation & Tabs -->
     <string name="nav_home">Home</string>
+    <string name="nav_meals">Meals</string>
     <string name="nav_members">Members</string>
     <string name="nav_profile">Profile</string>
 
