@@ -36,8 +36,8 @@
 
                 <ImageButton
                     android:id="@+id/btnBack"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/cd_back"
                     android:src="@drawable/ic_arrow_back"
@@ -47,7 +47,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    android:text="Close Month"
+                    android:text="@string/label_close_month"
                     android:textColor="@color/white"
                     android:textSize="28sp"
                     android:textStyle="bold" />
@@ -57,7 +57,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="Review period totals before finalizing month close."
+                    android:text="@string/close_month_subtitle"
                     android:textColor="#CCFFFFFF"
                     android:textSize="15sp" />
             </LinearLayout>
@@ -172,7 +172,7 @@
                         android:id="@+id/tvStep1"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1. Lock period"
+                        android:text="@string/close_step_lock_period"
                         android:textColor="@color/ms_text_secondary"
                         android:textSize="14sp" />
 
@@ -181,7 +181,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="2. Calculate financial snapshot"
+                        android:text="@string/close_step_calculate_snapshot"
                         android:textColor="@color/ms_text_secondary"
                         android:textSize="14sp" />
 
@@ -190,7 +190,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="3. Write member results"
+                        android:text="@string/close_step_write_results"
                         android:textColor="@color/ms_text_secondary"
                         android:textSize="14sp" />
 
@@ -199,7 +199,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="4. Create next month period"
+                        android:text="@string/close_step_create_period"
                         android:textColor="@color/ms_text_secondary"
                         android:textSize="14sp" />
 
@@ -208,7 +208,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
-                        android:text="5. Finalize month close"
+                        android:text="@string/close_step_finalize"
                         android:textColor="@color/ms_text_secondary"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -218,7 +218,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    android:text="I understand this cannot be undone"
+                    android:text="@string/close_month_irreversible_confirmation"
                     android:textColor="@color/ms_text_primary"
                     android:textSize="14sp" />
 
@@ -229,7 +229,7 @@
                     android:layout_marginTop="16dp"
                     android:enabled="false"
                     android:minHeight="56dp"
-                    android:text="Close Month"
+                    android:text="@string/label_close_month"
                     android:textSize="16sp"
                     android:textStyle="bold"
                     app:cornerRadius="16dp" />
@@ -241,7 +241,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:minHeight="52dp"
-                    android:text="Retry Close"
+                    android:text="@string/retry_close_month"
                     android:visibility="gone"
                     app:cornerRadius="14dp" />
 

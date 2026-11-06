@@ -11,6 +11,7 @@ public class Deposit {
     private String method; // "cash", "bank", "bkash", "nagad", "other"
     private String description;
     private String periodId;
+    private String status = "approved";
     private String createdBy;
     private String correctsId;
     @ServerTimestamp
@@ -82,6 +83,14 @@ public class Deposit {
 
     public void setPeriodId(String periodId) {
         this.periodId = periodId;
+    }
+
+    public String getStatus() {
+        return status == null || status.isEmpty() ? "approved" : status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 
     public String getCreatedBy() {

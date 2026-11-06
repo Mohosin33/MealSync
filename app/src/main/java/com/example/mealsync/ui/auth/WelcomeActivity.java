@@ -137,6 +137,8 @@ public class WelcomeActivity extends AppCompatActivity {
     }
 
     private void applyRole(boolean manager, boolean animate) {
+        binding.roleMember.setSelected(!manager);
+        binding.roleManager.setSelected(manager);
         int toAccent = ContextCompat.getColor(this,
                 manager ? R.color.ms_manager_end : R.color.ms_teal);
         updateTexts(manager, animate);

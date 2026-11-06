@@ -6,11 +6,11 @@
         android:title="@string/nav_home" />
     <item
         android:id="@+id/nav_meals"
-        android:icon="@drawable/ic_nav_home"
+        android:icon="@drawable/ic_nav_meals"
         android:title="@string/nav_meals" />
     <item
         android:id="@+id/nav_money"
-        android:icon="@drawable/ic_nav_members"
+        android:icon="@drawable/ic_nav_money"
         android:title="@string/nav_money" />
     <item
         android:id="@+id/nav_members"

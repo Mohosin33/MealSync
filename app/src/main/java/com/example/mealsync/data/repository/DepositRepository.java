@@ -66,7 +66,7 @@ public class DepositRepository {
         });
     }
 
-    public void addDeposit(String messId, Deposit deposit, ActionCallback callback) {
+    public void addDeposit(String messId, Deposit deposit, boolean isManager, ActionCallback callback) {
         FirebaseUser currentUser = auth.getCurrentUser();
         if (currentUser == null) {
             callback.onFailure(new Exception("User not signed in"));
@@ -82,6 +82,7 @@ public class DepositRepository {
         data.put("method", deposit.getMethod());
         data.put("description", deposit.getDescription());
         data.put("periodId", deposit.getPeriodId());
+        data.put("status", isManager ? "approved" : "pending");
         data.put("createdBy", currentUser.getUid());
         data.put("createdAt", FieldValue.serverTimestamp());
         if (deposit.getCorrectsId() != null) {
@@ -95,5 +96,32 @@ public class DepositRepository {
                 callback.onFailure(setTask.getException());
             }
         });
+    }
+
+    public void updateDepositStatus(String messId, String depositId, String status, ActionCallback callback) {
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            callback.onFailure(new Exception("User not signed in"));
+            return;
+        }
+        if (!"approved".equals(status) && !"rejected".equals(status)) {
+            callback.onFailure(new IllegalArgumentException("Invalid deposit status"));
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("status", status);
+        updates.put("reviewedBy", currentUser.getUid());
+        updates.put("reviewedAt", FieldValue.serverTimestamp());
+
+        db.collection("messes").document(messId).collection("deposits").document(depositId)
+                .update(updates)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        callback.onSuccess();
+                    } else {
+                        callback.onFailure(task.getException());
+                    }
+                });
     }
 }

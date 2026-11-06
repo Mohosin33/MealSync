@@ -10,6 +10,7 @@ import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +58,66 @@ public class AdjustmentRepository {
                         listener.onAdjustmentsUpdated(adjustments);
                     }
                 });
+    }
+
+    public ListenerRegistration observeAdjustments(String messId, String periodId,
+                                                   boolean isManager, String currentUid,
+                                                   AdjustmentsListener listener) {
+        if (isManager) {
+            return observeAdjustments(messId, periodId, listener);
+        }
+
+        Map<String, Adjustment> visibleAdjustments = new LinkedHashMap<>();
+        ListenerRegistration reversalListener = db.collection("messes").document(messId)
+                .collection("adjustments")
+                .whereEqualTo("periodId", periodId)
+                .whereEqualTo("type", "reversal")
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        listener.onError(error);
+                        return;
+                    }
+                    updateVisibleAdjustments(snapshot, visibleAdjustments, "reversal", listener);
+                });
+
+        ListenerRegistration memberAdjustmentListener = db.collection("messes").document(messId)
+                .collection("adjustments")
+                .whereEqualTo("periodId", periodId)
+                .whereEqualTo("memberId", currentUid)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        listener.onError(error);
+                        return;
+                    }
+                    updateVisibleAdjustments(snapshot, visibleAdjustments, "member_adjustment", listener);
+                });
+
+        return () -> {
+            reversalListener.remove();
+            memberAdjustmentListener.remove();
+        };
+    }
+
+    private void updateVisibleAdjustments(com.google.firebase.firestore.QuerySnapshot snapshot,
+                                          Map<String, Adjustment> visibleAdjustments,
+                                          String type, AdjustmentsListener listener) {
+        if (snapshot == null) return;
+
+        synchronized (visibleAdjustments) {
+            for (com.google.firebase.firestore.DocumentChange change : snapshot.getDocumentChanges()) {
+                String adjustmentId = change.getDocument().getId();
+                if (change.getType() == com.google.firebase.firestore.DocumentChange.Type.REMOVED) {
+                    visibleAdjustments.remove(adjustmentId);
+                    continue;
+                }
+
+                Adjustment adjustment = change.getDocument().toObject(Adjustment.class);
+                if (adjustment != null && type.equalsIgnoreCase(adjustment.getType())) {
+                    visibleAdjustments.put(adjustmentId, adjustment);
+                }
+            }
+            listener.onAdjustmentsUpdated(new ArrayList<>(visibleAdjustments.values()));
+        }
     }
 
     public void addAdjustment(String messId, Adjustment adjustment, ActionCallback callback) {

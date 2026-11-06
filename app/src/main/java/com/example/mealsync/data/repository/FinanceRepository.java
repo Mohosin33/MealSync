@@ -77,7 +77,9 @@ public class FinanceRepository {
         List<EngineDeposit> engineDeposits = new ArrayList<>();
         if (deposits != null) {
             for (Deposit d : deposits) {
-                engineDeposits.add(new EngineDeposit(d.getId(), d.getMemberId(), d.getAmountPaisa()));
+                if ("approved".equalsIgnoreCase(d.getStatus())) {
+                    engineDeposits.add(new EngineDeposit(d.getId(), d.getMemberId(), d.getAmountPaisa()));
+                }
             }
         }
 

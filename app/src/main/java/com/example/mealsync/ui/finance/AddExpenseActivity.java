@@ -156,7 +156,7 @@ public class AddExpenseActivity extends AppCompatActivity {
         }
 
         if (currentMess == null || currentMess.getCurrentPeriodId() == null) {
-            Snackbar.make(binding.getRoot(), "Period not initialized", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(binding.getRoot(), R.string.period_not_initialized, Snackbar.LENGTH_LONG).show();
             return;
         }
 

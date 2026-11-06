@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity
 
     private final Map<String, String> memberNamesMap = new HashMap<>();
     private final List<Member> activeMemberList = new ArrayList<>();
+    private final List<Meal> personalMealsList = new ArrayList<>();
     private final List<Expense> currentExpensesList = new ArrayList<>();
     private final List<Deposit> currentDepositsList = new ArrayList<>();
     private final List<Adjustment> currentAdjustmentsList = new ArrayList<>();
@@ -146,7 +147,17 @@ public class MainActivity extends AppCompatActivity
         setupNavigation();
         setupListeners();
         setupFinanceSubTabs();
+        updateThemeToggleIcon();
+        binding.btnThemeToggle.setOnClickListener(v ->
+                MealSyncApplication.setDarkMode(this, !MealSyncApplication.isDarkMode(this)));
         loadUserProfile(firebaseUser.getUid());
+    }
+
+    private void updateThemeToggleIcon() {
+        boolean darkMode = MealSyncApplication.isDarkMode(this);
+        binding.btnThemeToggle.setImageResource(darkMode ? R.drawable.ic_theme_sun : R.drawable.ic_theme_moon);
+        binding.btnThemeToggle.setContentDescription(getString(
+                darkMode ? R.string.switch_to_light_mode : R.string.switch_to_dark_mode));
     }
 
     private void applyWindowInsets() {
@@ -191,6 +202,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void setupFinanceSubTabs() {
+        showMoneySubPanel(R.id.panelSubExpenses);
         binding.btnSubExpenses.setOnClickListener(v -> showMoneySubPanel(R.id.panelSubExpenses));
         binding.btnSubDeposits.setOnClickListener(v -> showMoneySubPanel(R.id.panelSubDeposits));
         binding.btnSubSummary.setOnClickListener(v -> showMoneySubPanel(R.id.panelSubSummary));
@@ -254,6 +266,10 @@ public class MainActivity extends AppCompatActivity
         binding.panelSubDeposits.setVisibility(panelId == R.id.panelSubDeposits ? View.VISIBLE : View.GONE);
         binding.panelSubSummary.setVisibility(panelId == R.id.panelSubSummary ? View.VISIBLE : View.GONE);
         binding.panelSubArchive.setVisibility(panelId == R.id.panelSubArchive ? View.VISIBLE : View.GONE);
+        binding.btnSubExpenses.setSelected(panelId == R.id.panelSubExpenses);
+        binding.btnSubDeposits.setSelected(panelId == R.id.panelSubDeposits);
+        binding.btnSubSummary.setSelected(panelId == R.id.panelSubSummary);
+        binding.btnSubArchive.setSelected(panelId == R.id.panelSubArchive);
     }
 
     private void setupListeners() {
@@ -355,13 +371,13 @@ public class MainActivity extends AppCompatActivity
             public void onArchiveLongClick(Period p) {
                 if (currentMess == null || p == null) return;
                 new MaterialAlertDialogBuilder(MainActivity.this)
-                        .setTitle("Delete Archive")
-                        .setMessage("Delete archived period " + p.getPeriodId() + "?")
-                        .setPositiveButton("Delete", (dialog, which) -> {
+                        .setTitle(R.string.delete_archive_title)
+                        .setMessage(getString(R.string.delete_archive_prompt, p.getPeriodId()))
+                        .setPositiveButton(R.string.delete_action, (dialog, which) -> {
                             periodRepository.deleteArchivedPeriod(currentMess.getMessId(), p.getPeriodId(), new PeriodRepository.ActionCallback() {
                                 @Override
                                 public void onSuccess() {
-                                    Snackbar.make(binding.mainRoot, "Archived period deleted", Snackbar.LENGTH_SHORT).show();
+                                    Snackbar.make(binding.mainRoot, R.string.archive_deleted, Snackbar.LENGTH_SHORT).show();
                                     loadArchivePeriods();
                                 }
 
@@ -529,7 +545,7 @@ public class MainActivity extends AppCompatActivity
                     binding.tvCloseMonthSubtitle.setVisibility(View.GONE);
                 } else {
                     binding.tvCloseMonthSubtitle.setVisibility(View.VISIBLE);
-                    binding.tvCloseMonthSubtitle.setText("You can close this month from " + currentMonthLastDate);
+                    binding.tvCloseMonthSubtitle.setText(getString(R.string.close_month_earliest_date, currentMonthLastDate));
                 }
             } else {
                 binding.layoutManagerCloseMonth.setVisibility(View.GONE);
@@ -601,7 +617,8 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        adjustmentsListener = adjustmentRepository.observeAdjustments(messId, periodId, new AdjustmentRepository.AdjustmentsListener() {
+        adjustmentsListener = adjustmentRepository.observeAdjustments(
+                messId, periodId, isManager, currentUid, new AdjustmentRepository.AdjustmentsListener() {
             @Override
             public void onAdjustmentsUpdated(List<Adjustment> adjustments) {
                 currentAdjustmentsList.clear();
@@ -693,14 +710,11 @@ public class MainActivity extends AppCompatActivity
         binding.tvSummaryTotalFixed.setText(MoneyUtils.formatPaisa(result.getTotalFixedPaisa()));
 
         if (myRes != null) {
-            binding.tvSummaryMyMealCharge.setText(MoneyUtils.formatPaisa(myRes.getMealCostPaisa()));
-            binding.tvHomeMealCharge.setText(MoneyUtils.formatPaisa(myRes.getMealCostPaisa()));
             binding.tvSummaryMyFixedShare.setText(MoneyUtils.formatPaisa(myRes.getFixedSharePaisa()));
             long netBalance = myRes.getNetBalancePaisa();
             String balanceFormatted = MoneyUtils.formatPaisa(netBalance);
             binding.tvSummaryMyBalance.setText(balanceFormatted);
             binding.tvHomePersonalBalance.setText(balanceFormatted + " (Estimated)");
-            binding.tvHomeTotalDeposits.setText(MoneyUtils.formatPaisa(myRes.getTotalDepositsPaisa()));
 
             if (netBalance > 0) {
                 binding.tvSummaryMyBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_teal));
@@ -730,10 +744,10 @@ public class MainActivity extends AppCompatActivity
     private void onExpenseLongClick(Expense expense) {
         if (currentMess == null || currentPeriod == null) return;
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Correct Expense")
-                .setMessage("Choose an action for this expense: " + expense.getDescription())
-                .setPositiveButton("Reverse", (dialog, which) -> showReversalDialog("expense", expense.getId(), null))
-                .setNeutralButton("Reverse & Re-enter", (dialog, which) -> showReversalDialog("expense", expense.getId(), () -> {
+                .setTitle(R.string.correct_expense_title)
+                .setMessage(getString(R.string.expense_action_prompt, expense.getDescription()))
+                .setPositiveButton(R.string.reverse_entry, (dialog, which) -> showReversalDialog("expense", expense.getId(), null))
+                .setNeutralButton(R.string.reverse_and_reenter, (dialog, which) -> showReversalDialog("expense", expense.getId(), () -> {
                     Intent intent = new Intent(this, AddExpenseActivity.class);
                     intent.putExtra(AddExpenseActivity.EXTRA_MESS_ID, currentMess.getMessId());
                     intent.putExtra(AddExpenseActivity.EXTRA_CORRECTS_ID, expense.getId());
@@ -745,11 +759,24 @@ public class MainActivity extends AppCompatActivity
 
     private void onDepositLongClick(Deposit deposit) {
         if (currentMess == null || currentPeriod == null) return;
+        if ("pending".equalsIgnoreCase(deposit.getStatus())) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.deposit_status_pending)
+                    .setMessage(getString(R.string.review_deposit_prompt,
+                            MoneyUtils.formatPaisa(deposit.getAmountPaisa()),
+                            memberNamesMap.getOrDefault(deposit.getMemberId(), getString(R.string.role_member))))
+                    .setPositiveButton(R.string.approve_deposit, (dialog, which) -> updateDepositStatus(deposit, "approved"))
+                    .setNeutralButton(R.string.reject_deposit, (dialog, which) -> updateDepositStatus(deposit, "rejected"))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            return;
+        }
+        if (!"approved".equalsIgnoreCase(deposit.getStatus())) return;
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Correct Deposit")
-                .setMessage("Choose an action for this deposit.")
-                .setPositiveButton("Reverse", (dialog, which) -> showReversalDialog("deposit", deposit.getId(), null))
-                .setNeutralButton("Reverse & Re-enter", (dialog, which) -> showReversalDialog("deposit", deposit.getId(), () -> {
+                .setTitle(R.string.correct_deposit_title)
+                .setMessage(R.string.deposit_action_prompt)
+                .setPositiveButton(R.string.reverse_entry, (dialog, which) -> showReversalDialog("deposit", deposit.getId(), null))
+                .setNeutralButton(R.string.reverse_and_reenter, (dialog, which) -> showReversalDialog("deposit", deposit.getId(), () -> {
                     Intent intent = new Intent(this, AddDepositActivity.class);
                     intent.putExtra(AddDepositActivity.EXTRA_MESS_ID, currentMess.getMessId());
                     intent.putExtra(AddDepositActivity.EXTRA_CORRECTS_ID, deposit.getId());
@@ -759,11 +786,31 @@ public class MainActivity extends AppCompatActivity
                 .show();
     }
 
+    private void updateDepositStatus(Deposit deposit, String status) {
+        if (currentMess == null || deposit == null) return;
+        depositRepository.updateDepositStatus(currentMess.getMessId(), deposit.getId(), status,
+                new DepositRepository.ActionCallback() {
+                    @Override
+                    public void onSuccess() {
+                        String message = getString("approved".equals(status)
+                                ? R.string.deposit_approved : R.string.deposit_rejected);
+                        Snackbar.make(binding.mainRoot, message, Snackbar.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(Exception error) {
+                        String message = error != null && error.getLocalizedMessage() != null
+                                ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to update deposit");
+                        Snackbar.make(binding.mainRoot, message, Snackbar.LENGTH_LONG).show();
+                    }
+                });
+    }
+
     private void showReversalDialog(String targetType, String targetId, Runnable onReversed) {
         if (currentMess == null || currentMess.getCurrentPeriodId() == null) return;
 
         EditText etReason = new EditText(this);
-        etReason.setHint("Reason for reversal");
+        etReason.setHint(R.string.reversal_reason_hint);
         etReason.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
 
         LinearLayout container = new LinearLayout(this);
@@ -778,7 +825,7 @@ public class MainActivity extends AppCompatActivity
                 .setView(container)
                 .setPositiveButton(R.string.reverse_entry, (dialog, which) -> {
                     String reason = etReason.getText().toString().trim();
-                    if (reason.isEmpty()) reason = "Correction";
+                    if (reason.isEmpty()) reason = getString(R.string.correction_reason_default);
 
                     String adjId = UUID.randomUUID().toString();
                     String periodId = currentMess.getCurrentPeriodId();
@@ -789,7 +836,7 @@ public class MainActivity extends AppCompatActivity
                     adjustmentRepository.addAdjustment(currentMess.getMessId(), reversal, new AdjustmentRepository.ActionCallback() {
                         @Override
                         public void onSuccess() {
-                            Snackbar.make(binding.mainRoot, "Entry reversed", Snackbar.LENGTH_SHORT).show();
+                            Snackbar.make(binding.mainRoot, R.string.entry_reversed, Snackbar.LENGTH_SHORT).show();
                             if (onReversed != null) onReversed.run();
                         }
 
@@ -822,11 +869,11 @@ public class MainActivity extends AppCompatActivity
         spinnerMembers.setAdapter(adapter);
 
         EditText etAmount = new EditText(this);
-        etAmount.setHint("Amount in Taka (+ credit, - refund/debit)");
+        etAmount.setHint(R.string.adjustment_amount_dialog_hint);
         etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL);
 
         EditText etReason = new EditText(this);
-        etReason.setHint("Reason for adjustment");
+        etReason.setHint(R.string.reason_adjustment_hint);
         etReason.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
 
         container.addView(spinnerMembers);
@@ -853,7 +900,7 @@ public class MainActivity extends AppCompatActivity
                     try {
                         absPaisa = MoneyUtils.parseTakaToPaisa(absAmtStr);
                     } catch (Exception e) {
-                        Snackbar.make(binding.mainRoot, "Invalid amount", Snackbar.LENGTH_LONG).show();
+                        Snackbar.make(binding.mainRoot, R.string.invalid_amount, Snackbar.LENGTH_LONG).show();
                         return;
                     }
 
@@ -867,7 +914,7 @@ public class MainActivity extends AppCompatActivity
                     adjustmentRepository.addAdjustment(currentMess.getMessId(), adj, new AdjustmentRepository.ActionCallback() {
                         @Override
                         public void onSuccess() {
-                            Snackbar.make(binding.mainRoot, "Adjustment saved", Snackbar.LENGTH_SHORT).show();
+                            Snackbar.make(binding.mainRoot, R.string.adjustment_saved, Snackbar.LENGTH_SHORT).show();
                         }
 
                         @Override
@@ -894,7 +941,11 @@ public class MainActivity extends AppCompatActivity
                     mealHistoryAdapter.setMeals(meals);
                 }
                 binding.tvMealsEmpty.setVisibility(meals == null || meals.isEmpty() ? View.VISIBLE : View.GONE);
-                calculateMonthlyCounts(meals);
+                personalMealsList.clear();
+                if (meals != null) {
+                    personalMealsList.addAll(meals);
+                }
+                calculateMonthlyCounts(personalMealsList);
             }
 
             @Override
@@ -924,6 +975,25 @@ public class MainActivity extends AppCompatActivity
         binding.tvMonthLunches.setText(String.valueOf(totalLunches));
         binding.tvMonthDinners.setText(String.valueOf(totalDinners));
         binding.tvMonthGuests.setText(String.valueOf(totalGuests));
+
+        long mealRatePaisa = currentMess != null ? currentMess.getMealRatePaisa() : 0L;
+        long totalMealChargePaisa = mealRatePaisa > 0
+                ? (long) (totalLunches + totalDinners + totalGuests) * mealRatePaisa
+                : 0L;
+        String totalMealCharge = mealRatePaisa > 0
+                ? MoneyUtils.formatPaisa(totalMealChargePaisa)
+                : "Not set";
+        long tomorrowMealCount = tomorrowMeal == null ? 0L
+                : (tomorrowMeal.isLunch() ? 1L : 0L)
+                + (tomorrowMeal.isDinner() ? 1L : 0L)
+                + tomorrowMeal.getGuests();
+        String tomorrowMealCharge = mealRatePaisa > 0
+                ? MoneyUtils.formatPaisa(tomorrowMealCount * mealRatePaisa)
+                : "Not set";
+        binding.tvHomeTomorrowMealCharge.setText(tomorrowMealCharge);
+        binding.tvSummaryTomorrowMealCharge.setText(tomorrowMealCharge);
+        binding.tvHomeTotalMealCharge.setText(totalMealCharge);
+        binding.tvSummaryTotalMealCharge.setText(totalMealCharge);
     }
 
     private void updateMealDashboard() {
@@ -932,9 +1002,10 @@ public class MainActivity extends AppCompatActivity
         currentCutoffResult = CutoffCalculator.calculate(
                 Instant.now(), currentMess.getTimezone(), currentMess.getCutoffTime()
         );
+        calculateMonthlyCounts(personalMealsList);
 
-        binding.tvHomeTodayDate.setText("Today: " + currentCutoffResult.getTodayDate());
-        binding.tvTomorrowHeader.setText("Tomorrow's Meals (" + currentCutoffResult.getTomorrowDate() + ")");
+        binding.tvHomeTodayDate.setText(getString(R.string.label_today_date, currentCutoffResult.getTodayDate()));
+        binding.tvTomorrowHeader.setText(getString(R.string.label_tomorrow_meals_date, currentCutoffResult.getTomorrowDate()));
 
         boolean isManager = checkIsManager();
         boolean needsSetup = currentMess.getUtcOffsetMinutes() == 0;
@@ -942,7 +1013,7 @@ public class MainActivity extends AppCompatActivity
         if (needsSetup && !isManager) {
             binding.cardSetupNotice.setVisibility(View.VISIBLE);
             setControlsEnabled(false);
-            binding.tvCutoffStatus.setText("Setup incomplete");
+            binding.tvCutoffStatus.setText(R.string.setup_incomplete_short);
             return;
         } else {
             binding.cardSetupNotice.setVisibility(View.GONE);
@@ -975,10 +1046,10 @@ public class MainActivity extends AppCompatActivity
         dayTotalsListener = mealRepository.observeDayTotals(messId, tomorrowDate, new MealRepository.DayTotalsListener() {
             @Override
             public void onTotalsUpdated(DayTotals totals) {
-                binding.tvTotalLunch.setText("Lunch: " + totals.getTotalLunch());
-                binding.tvTotalDinner.setText("Dinner: " + totals.getTotalDinner());
-                binding.tvTotalGuests.setText("Guests: " + totals.getTotalGuests());
-                binding.tvGrandTotal.setText("Grand Total: " + totals.getGrandTotal() + " meals");
+                binding.tvTotalLunch.setText(getString(R.string.label_lunch_count, totals.getTotalLunch()));
+                binding.tvTotalDinner.setText(getString(R.string.label_dinner_count, totals.getTotalDinner()));
+                binding.tvTotalGuests.setText(getString(R.string.label_guests_count_total, totals.getTotalGuests()));
+                binding.tvGrandTotal.setText(getString(R.string.label_grand_total_meals, totals.getGrandTotal()));
             }
 
             @Override
@@ -988,12 +1059,14 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void renderTomorrowMeal(Meal meal) {
+        tomorrowMeal = meal;
         isUpdatingControls = true;
         binding.switchLunch.setChecked(meal.isLunch());
         binding.switchDinner.setChecked(meal.isDinner());
         binding.tvGuestCount.setText(String.valueOf(meal.getGuests()));
         binding.tvMealPending.setVisibility(meal.isPending() ? View.VISIBLE : View.GONE);
         isUpdatingControls = false;
+        calculateMonthlyCounts(personalMealsList);
 
         boolean open = currentCutoffResult != null && currentCutoffResult.isOpen();
         setControlsEnabled(open && !isSavingMeal);
@@ -1016,11 +1089,11 @@ public class MainActivity extends AppCompatActivity
             long seconds = millis / 1000;
             long hours = seconds / 3600;
             long mins = (seconds % 3600) / 60;
-            binding.tvCutoffStatus.setText("Closes in " + hours + "h " + mins + "m");
+            binding.tvCutoffStatus.setText(getString(R.string.cutoff_closes_in, hours, mins));
             setControlsEnabled(!isSavingMeal);
             handler.postDelayed(timerRunnable, 30000L);
         } else {
-            binding.tvCutoffStatus.setText("Meal editing for tomorrow is closed. Cutoff was " + currentMess.getCutoffTime() + ".");
+            binding.tvCutoffStatus.setText(getString(R.string.cutoff_closed, currentMess.getCutoffTime()));
             setControlsEnabled(false);
         }
     }
@@ -1029,7 +1102,7 @@ public class MainActivity extends AppCompatActivity
         if (currentMess == null || currentCutoffResult == null || isSavingMeal) return;
 
         if (!currentCutoffResult.isOpen()) {
-            Snackbar.make(binding.mainRoot, "Meal editing is closed", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(binding.mainRoot, R.string.meal_editing_closed, Snackbar.LENGTH_LONG).show();
             if (tomorrowMeal != null) renderTomorrowMeal(tomorrowMeal);
             return;
         }
@@ -1047,7 +1120,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onFailure(Exception error) {
                 isSavingMeal = false;
-                Snackbar.make(binding.mainRoot, "Meal editing is closed", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(binding.mainRoot, R.string.meal_editing_closed, Snackbar.LENGTH_LONG).show();
                 if (tomorrowMeal != null) {
                     renderTomorrowMeal(tomorrowMeal);
                 } else {
@@ -1152,7 +1225,7 @@ public class MainActivity extends AppCompatActivity
                 .setPositiveButton(R.string.remove_member, (dialog, which) -> messRepository.removeMember(currentMess.getMessId(), member.getUid(), new MessRepository.ActionCallback() {
                     @Override
                     public void onSuccess() {
-                        Snackbar.make(binding.mainRoot, "Member removed", Snackbar.LENGTH_SHORT).show();
+                        Snackbar.make(binding.mainRoot, R.string.member_removed, Snackbar.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -1172,7 +1245,7 @@ public class MainActivity extends AppCompatActivity
         messRepository.updateIncludeInFixed(currentMess.getMessId(), member.getUid(), includeInFixed, new MessRepository.ActionCallback() {
             @Override
             public void onSuccess() {
-                Snackbar.make(binding.mainRoot, "Fixed share setting updated", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(binding.mainRoot, R.string.fixed_share_updated, Snackbar.LENGTH_SHORT).show();
             }
 
             @Override

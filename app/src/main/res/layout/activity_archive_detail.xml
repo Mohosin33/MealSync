@@ -36,8 +36,8 @@
 
                 <ImageButton
                     android:id="@+id/btnBack"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/cd_back"
                     android:src="@drawable/ic_arrow_back"
@@ -94,7 +94,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Fixed Meal Rate"
+                            android:text="@string/label_fixed_meal_rate"
                             android:textColor="@color/ms_text_secondary"
                             android:textSize="13sp" />
 
@@ -140,7 +140,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    android:text="Member Summary Results"
+                    android:text="@string/label_member_summary_results"
                     android:textColor="@color/ms_text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />
@@ -158,7 +158,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="20dp"
-                    android:text="Period Expenses (Read-Only)"
+                    android:text="@string/label_period_expenses_read_only"
                     android:textColor="@color/ms_text_primary"
                     android:textSize="16sp"
                     android:textStyle="bold" />

@@ -41,14 +41,33 @@
                     android:paddingEnd="20dp"
                     android:paddingBottom="24dp">
 
-                    <TextView
-                        android:id="@+id/tvHomeMessName"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/white"
-                        android:textSize="26sp"
-                        android:textStyle="bold"
-                        tools:text="Green House Mess" />
+                    <RelativeLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content">
+
+                        <TextView
+                            android:id="@+id/tvHomeMessName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_centerVertical="true"
+                            android:layout_toStartOf="@id/btnThemeToggle"
+                            android:textColor="@color/white"
+                            android:textSize="26sp"
+                            android:textStyle="bold"
+                            tools:text="Green House Mess" />
+
+                        <ImageButton
+                            android:id="@+id/btnThemeToggle"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_alignParentEnd="true"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="@string/switch_to_dark_mode"
+                            android:padding="12dp"
+                            android:scaleType="fitCenter"
+                            android:src="@drawable/ic_theme_moon"
+                            app:tint="@color/white" />
+                    </RelativeLayout>
 
                     <TextView
                         android:id="@+id/tvHomeTodayDate"
@@ -116,7 +135,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_alignParentEnd="true"
-                                    android:text="Syncing..."
+                                    android:text="@string/label_syncing"
                                     android:textColor="@color/ms_teal"
                                     android:textSize="12sp"
                                     android:textStyle="bold"
@@ -148,7 +167,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_centerVertical="true"
-                                    android:text="Lunch"
+                                    android:text="@string/label_lunch"
                                     android:textColor="@color/ms_text_primary"
                                     android:textSize="16sp"
                                     android:textStyle="bold" />
@@ -157,7 +176,8 @@
                                     android:id="@+id/switchLunch"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_alignParentEnd="true" />
+                                    android:layout_alignParentEnd="true"
+                                    android:contentDescription="@string/label_lunch" />
                             </RelativeLayout>
 
                             <!-- Dinner Switch -->
@@ -170,7 +190,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_centerVertical="true"
-                                    android:text="Dinner"
+                                    android:text="@string/label_dinner"
                                     android:textColor="@color/ms_text_primary"
                                     android:textSize="16sp"
                                     android:textStyle="bold" />
@@ -179,7 +199,8 @@
                                     android:id="@+id/switchDinner"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_alignParentEnd="true" />
+                                    android:layout_alignParentEnd="true"
+                                    android:contentDescription="@string/label_dinner" />
                             </RelativeLayout>
 
                             <!-- Guest Stepper -->
@@ -192,7 +213,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_centerVertical="true"
-                                    android:text="Guest Meals"
+                                    android:text="@string/label_guest_meals"
                                     android:textColor="@color/ms_text_primary"
                                     android:textSize="16sp"
                                     android:textStyle="bold" />
@@ -207,13 +228,14 @@
                                     <com.google.android.material.button.MaterialButton
                                         android:id="@+id/btnGuestMinus"
                                         style="@style/Widget.Material3.Button.OutlinedButton"
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
+                                        android:layout_width="48dp"
+                                        android:layout_height="48dp"
                                         android:insetLeft="0dp"
                                         android:insetTop="0dp"
                                         android:insetRight="0dp"
                                         android:insetBottom="0dp"
                                         android:padding="0dp"
+                                        android:contentDescription="@string/decrease_guest_meals"
                                         android:text="-"
                                         android:textSize="18sp" />
 
@@ -230,13 +252,14 @@
                                     <com.google.android.material.button.MaterialButton
                                         android:id="@+id/btnGuestPlus"
                                         style="@style/Widget.Material3.Button.OutlinedButton"
-                                        android:layout_width="40dp"
-                                        android:layout_height="40dp"
+                                        android:layout_width="48dp"
+                                        android:layout_height="48dp"
                                         android:insetLeft="0dp"
                                         android:insetTop="0dp"
                                         android:insetRight="0dp"
                                         android:insetBottom="0dp"
                                         android:padding="0dp"
+                                        android:contentDescription="@string/increase_guest_meals"
                                         android:text="+"
                                         android:textSize="18sp" />
                                 </LinearLayout>
@@ -263,7 +286,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Your Counts This Month"
+                                android:text="@string/label_monthly_counts"
                                 android:textColor="@color/ms_text_primary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -293,7 +316,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Lunches"
+                                        android:text="@string/label_lunches"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="12sp" />
                                 </LinearLayout>
@@ -317,7 +340,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Dinners"
+                                        android:text="@string/label_dinners"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="12sp" />
                                 </LinearLayout>
@@ -341,7 +364,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Guests"
+                                        android:text="@string/label_guests"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="12sp" />
                                 </LinearLayout>
@@ -380,7 +403,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Meal Rate"
+                                        android:text="@string/label_meal_rate"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="12sp" />
 
@@ -389,7 +412,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="2dp"
-                                        android:text="Unavailable"
+                                        android:text="@string/label_unavailable"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="15sp"
                                         android:textStyle="bold" />
@@ -404,31 +427,7 @@
                                     <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:text="Total Deposits"
-                                        android:textColor="@color/ms_text_secondary"
-                                        android:textSize="12sp" />
-
-                                    <TextView
-                                        android:id="@+id/tvHomeTotalDeposits"
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_marginTop="2dp"
-                                        android:text="৳0.00"
-                                        android:textColor="@color/ms_teal"
-                                        android:textSize="15sp"
-                                        android:textStyle="bold" />
-                                </LinearLayout>
-
-                                <LinearLayout
-                                    android:layout_width="0dp"
-                                    android:layout_height="wrap_content"
-                                    android:layout_weight="1"
-                                    android:orientation="vertical">
-
-                                    <TextView
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:text="Net Balance"
+                                        android:text="@string/label_net_balance"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="12sp" />
 
@@ -437,7 +436,7 @@
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
                                         android:layout_marginTop="2dp"
-                                        android:text="Unavailable"
+                                        android:text="@string/label_unavailable"
                                         android:textColor="@color/ms_text_secondary"
                                         android:textSize="15sp"
                                         android:textStyle="bold" />
@@ -453,16 +452,40 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="My Meal Charge"
+                                    android:text="@string/meal_charge_tomorrow"
                                     android:textColor="@color/ms_text_secondary"
                                     android:textSize="12sp" />
 
                                 <TextView
-                                    android:id="@+id/tvHomeMealCharge"
+                                    android:id="@+id/tvHomeTomorrowMealCharge"
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_marginTop="2dp"
-                                    android:text="৳0.00"
+                                    android:text="@string/default_zero_taka"
+                                    android:textColor="@color/ms_text_primary"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="12dp"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="@string/meal_charge_total"
+                                    android:textColor="@color/ms_text_secondary"
+                                    android:textSize="12sp" />
+
+                                <TextView
+                                    android:id="@+id/tvHomeTotalMealCharge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:text="@string/default_zero_taka"
                                     android:textColor="@color/ms_text_primary"
                                     android:textSize="15sp"
                                     android:textStyle="bold" />
@@ -492,7 +515,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Tomorrow's Total Meals (Mess)"
+                                android:text="@string/label_tomorrow_total_meals"
                                 android:textColor="@color/ms_text_primary"
                                 android:textSize="16sp"
                                 android:textStyle="bold" />
@@ -571,7 +594,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Meal History"
+                    android:text="@string/label_meal_history"
                     android:textColor="@color/white"
                     android:textSize="26sp"
                     android:textStyle="bold" />
@@ -590,7 +613,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:layout_marginTop="48dp"
-                    android:text="No meal history found"
+                    android:text="@string/empty_meal_history"
                     android:textColor="@color/ms_text_secondary"
                     android:textSize="16sp"
                     android:visibility="gone" />
@@ -652,7 +675,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:padding="12dp"
-                        android:text="Month closing in progress. Adding expenses and deposits is paused."
+                        android:text="@string/closing_period_notice"
                         android:textColor="#856404"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -669,12 +692,14 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSubExpenses"
-                        style="@style/Widget.Material3.Button.TonalButton"
+                        style="@style/Widget.Material3.Button.TextButton"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/tab_expenses"
-                        android:textSize="11sp"
+                        android:textColor="@color/money_subtab_text"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -684,7 +709,9 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/tab_deposits"
-                        android:textSize="11sp"
+                        android:textColor="@color/money_subtab_text"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -694,7 +721,9 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="@string/tab_summary"
-                        android:textSize="11sp"
+                        android:textColor="@color/money_subtab_text"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
 
                     <com.google.android.material.button.MaterialButton
@@ -703,8 +732,10 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Archive"
-                        android:textSize="11sp"
+                        android:text="@string/label_archive"
+                        android:textColor="@color/money_subtab_text"
+                        android:textSize="12sp"
+                        app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
                 </LinearLayout>
 
@@ -731,10 +762,10 @@
                         android:layout_alignParentEnd="true"
                         android:layout_alignParentBottom="true"
                         android:layout_margin="16dp"
-                        android:text="Add Expense"
+                        android:text="@string/label_add_expense"
                         android:textColor="@color/white"
                         android:visibility="gone"
-                        app:backgroundTint="@color/ms_teal"
+                        app:backgroundTint="@color/ms_primary"
                         tools:visibility="visible" />
                 </RelativeLayout>
 
@@ -761,10 +792,10 @@
                         android:layout_alignParentEnd="true"
                         android:layout_alignParentBottom="true"
                         android:layout_margin="16dp"
-                        android:text="Add Deposit"
+                        android:text="@string/label_add_deposit"
                         android:textColor="@color/white"
                         android:visibility="gone"
-                        app:backgroundTint="@color/ms_teal"
+                        app:backgroundTint="@color/ms_primary"
                         tools:visibility="visible" />
                 </RelativeLayout>
 
@@ -801,7 +832,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="Fixed Meal Rate"
+                                    android:text="@string/label_fixed_meal_rate"
                                     android:textColor="@color/ms_text_secondary"
                                     android:textSize="13sp" />
 
@@ -835,19 +866,19 @@
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="My Meal Charge"
+                                            android:text="@string/meal_charge_tomorrow"
                                             android:textColor="@color/ms_text_secondary"
                                             android:textSize="12sp" />
 
                                         <TextView
-                                            android:id="@+id/tvSummaryMyMealCharge"
+                                            android:id="@+id/tvSummaryTomorrowMealCharge"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:layout_marginTop="2dp"
                                             android:textColor="@color/ms_text_primary"
                                             android:textSize="15sp"
                                             android:textStyle="bold"
-                                            tools:text="৳12,500.00" />
+                                            tools:text="৳100.00" />
                                     </LinearLayout>
 
                                     <LinearLayout
@@ -859,19 +890,19 @@
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="Total Fixed Expenses"
+                                            android:text="@string/meal_charge_total"
                                             android:textColor="@color/ms_text_secondary"
                                             android:textSize="12sp" />
 
                                         <TextView
-                                            android:id="@+id/tvSummaryTotalFixed"
+                                            android:id="@+id/tvSummaryTotalMealCharge"
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
                                             android:layout_marginTop="2dp"
                                             android:textColor="@color/ms_text_primary"
                                             android:textSize="15sp"
                                             android:textStyle="bold"
-                                            tools:text="৳3,000.00" />
+                                            tools:text="৳12,500.00" />
                                     </LinearLayout>
                                 </LinearLayout>
 
@@ -890,7 +921,31 @@
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="My Fixed Share"
+                                            android:text="@string/label_fixed_expenses_total"
+                                            android:textColor="@color/ms_text_secondary"
+                                            android:textSize="12sp" />
+
+                                        <TextView
+                                            android:id="@+id/tvSummaryTotalFixed"
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:layout_marginTop="2dp"
+                                            android:textColor="@color/ms_text_primary"
+                                            android:textSize="15sp"
+                                            android:textStyle="bold"
+                                            tools:text="৳3,000.00" />
+                                    </LinearLayout>
+
+                                    <LinearLayout
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:orientation="vertical">
+
+                                        <TextView
+                                            android:layout_width="wrap_content"
+                                            android:layout_height="wrap_content"
+                                            android:text="@string/label_my_fixed_share"
                                             android:textColor="@color/ms_text_secondary"
                                             android:textSize="12sp" />
 
@@ -904,6 +959,13 @@
                                             android:textStyle="bold"
                                             tools:text="৳600.00" />
                                     </LinearLayout>
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:orientation="horizontal">
 
                                     <LinearLayout
                                         android:layout_width="0dp"
@@ -914,7 +976,7 @@
                                         <TextView
                                             android:layout_width="wrap_content"
                                             android:layout_height="wrap_content"
-                                            android:text="My Net Balance"
+                                            android:text="@string/label_my_net_balance"
                                             android:textColor="@color/ms_text_secondary"
                                             android:textSize="12sp" />
 
@@ -951,7 +1013,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_centerVertical="true"
-                                    android:text="All Member Summaries"
+                                    android:text="@string/label_member_summaries"
                                     android:textColor="@color/ms_text_primary"
                                     android:textSize="16sp"
                                     android:textStyle="bold" />
@@ -962,7 +1024,7 @@
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
                                     android:layout_alignParentEnd="true"
-                                    android:text="Adjustment"
+                                    android:text="@string/label_adjustment"
                                     android:textColor="@color/ms_teal"
                                     android:textSize="12sp" />
                             </RelativeLayout>
@@ -991,7 +1053,7 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:minHeight="52dp"
-                                android:text="Close Month"
+                                android:text="@string/label_close_month"
                                 android:textColor="@color/ms_negative"
                                 app:cornerRadius="12dp"
                                 app:strokeColor="@color/ms_negative" />
@@ -1023,7 +1085,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_centerInParent="true"
-                        android:text="No closed periods found in archive"
+                        android:text="@string/empty_archive"
                         android:textColor="@color/ms_text_secondary"
                         android:textSize="15sp"
                         android:visibility="gone" />
@@ -1306,8 +1368,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:background="@color/white"
+        android:background="@color/ms_card"
         app:elevation="8dp"
+        app:itemIconTint="@color/nav_item_tint"
+        app:itemTextColor="@color/nav_item_tint"
+        app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
 
 </RelativeLayout>

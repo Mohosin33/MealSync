@@ -223,7 +223,7 @@ public class PeriodCloseRepository {
                                                                     List<EngineDeposit> engineDeposits = new ArrayList<>();
                                                                     for (DocumentSnapshot doc : depositDocs) {
                                                                         Deposit d = doc.toObject(Deposit.class);
-                                                                        if (d != null) {
+                                                                        if (d != null && "approved".equalsIgnoreCase(d.getStatus())) {
                                                                             engineDeposits.add(new EngineDeposit(d.getId(), d.getMemberId(), d.getAmountPaisa()));
                                                                         }
                                                                     }

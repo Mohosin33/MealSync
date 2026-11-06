@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mealsync.R;
@@ -79,6 +80,7 @@ public class DepositAdapter extends RecyclerView.Adapter<DepositAdapter.DepositV
         private final TextView tvMethod;
         private final TextView tvDescription;
         private final TextView tvReversedBadge;
+        private final TextView tvStatusBadge;
 
         public DepositViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -87,13 +89,26 @@ public class DepositAdapter extends RecyclerView.Adapter<DepositAdapter.DepositV
             tvMethod = itemView.findViewById(R.id.tvDepositMethod);
             tvDescription = itemView.findViewById(R.id.tvDepositDescription);
             tvReversedBadge = itemView.findViewById(R.id.tvDepositReversedBadge);
+            tvStatusBadge = itemView.findViewById(R.id.tvDepositStatusBadge);
         }
 
         public void bind(Deposit deposit, String memberName, boolean isReversed, boolean isManager, OnDepositClickListener listener) {
             tvMemberName.setText(memberName);
-            tvAmount.setText("+" + MoneyUtils.formatPaisa(deposit.getAmountPaisa()));
+            boolean isRejected = "rejected".equalsIgnoreCase(deposit.getStatus());
+            tvAmount.setText((isRejected ? "" : "+") + MoneyUtils.formatPaisa(deposit.getAmountPaisa()));
+            tvAmount.setTextColor(ContextCompat.getColor(itemView.getContext(),
+                    isRejected ? R.color.ms_negative : R.color.ms_teal));
             tvMethod.setText(deposit.getMethod() != null ? deposit.getMethod() : "cash");
             tvDescription.setText(deposit.getDescription() != null ? deposit.getDescription() : "");
+            String status = deposit.getStatus();
+            int statusLabel = "pending".equalsIgnoreCase(status) ? R.string.deposit_status_pending
+                    : "rejected".equalsIgnoreCase(status) ? R.string.deposit_status_rejected
+                    : R.string.deposit_status_approved;
+            tvStatusBadge.setText(statusLabel);
+            int statusColor = "pending".equalsIgnoreCase(status) ? R.color.ms_manager_end
+                    : "rejected".equalsIgnoreCase(status) ? R.color.ms_negative : R.color.ms_positive;
+            tvStatusBadge.setTextColor(ContextCompat.getColor(itemView.getContext(), statusColor));
+            tvStatusBadge.setVisibility(isReversed ? View.GONE : View.VISIBLE);
 
             if (isReversed) {
                 tvMemberName.setPaintFlags(tvMemberName.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
@@ -105,7 +120,7 @@ public class DepositAdapter extends RecyclerView.Adapter<DepositAdapter.DepositV
                 tvReversedBadge.setVisibility(View.GONE);
             }
 
-            if (isManager && !isReversed) {
+            if (isManager && !isReversed && !"rejected".equalsIgnoreCase(status)) {
                 itemView.setOnLongClickListener(v -> {
                     if (listener != null) {
                         listener.onDepositLongClick(deposit);

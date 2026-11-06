@@ -9,6 +9,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.mealsync.R;
 import com.example.mealsync.close.MemberResult;
 import com.example.mealsync.data.models.Expense;
 import com.example.mealsync.data.models.Period;
@@ -138,17 +139,17 @@ public class ArchiveDetailActivity extends AppCompatActivity {
         long fixPaisa = totals != null && totals.containsKey("totalFixedPaisa") ? totals.get("totalFixedPaisa") : 0L;
         long depPaisa = totals != null && totals.containsKey("totalDepositsPaisa") ? totals.get("totalDepositsPaisa") : 0L;
 
-        String totalsStr = "Meals: " + meals
-                + " | Meal Charges: " + MoneyUtils.formatPaisa(mealChargesPaisa)
-                + " | Fixed Expenses: " + MoneyUtils.formatPaisa(fixPaisa)
-                + " | Deposits: " + MoneyUtils.formatPaisa(depPaisa);
+        String totalsStr = getString(R.string.label_archive_detail_totals, meals,
+                MoneyUtils.formatPaisa(mealChargesPaisa), MoneyUtils.formatPaisa(fixPaisa),
+                MoneyUtils.formatPaisa(depPaisa));
         binding.tvArchiveDetailTotals.setText(totalsStr);
 
         Map<String, Long> unallocated = period.getUnallocated();
         long unVar = unallocated != null && unallocated.containsKey("unallocatedVariablePaisa") ? unallocated.get("unallocatedVariablePaisa") : 0L;
         if (unVar > 0) {
             binding.tvArchiveDetailUnallocated.setVisibility(android.view.View.VISIBLE);
-            binding.tvArchiveDetailUnallocated.setText("Unallocated Variable Expenses: " + MoneyUtils.formatPaisa(unVar));
+            binding.tvArchiveDetailUnallocated.setText(getString(R.string.label_unallocated_expenses,
+                    MoneyUtils.formatPaisa(unVar)));
         } else {
             binding.tvArchiveDetailUnallocated.setVisibility(android.view.View.GONE);
         }

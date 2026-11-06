@@ -182,9 +182,18 @@ service cloud.firestore {
           get(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)).data.status == 'open' &&
           request.resource.data.createdBy == request.auth.uid &&
           request.resource.data.createdAt == request.time &&
-          request.resource.data.keys().hasOnly(['id', 'memberId', 'amountPaisa', 'method', 'description', 'periodId', 'createdBy', 'createdAt', 'correctsId']);
+          request.resource.data.status in ['pending', 'approved'] &&
+          (isMessManager(messId) || request.resource.data.status == 'pending') &&
+          request.resource.data.keys().hasOnly(['id', 'memberId', 'amountPaisa', 'method', 'description', 'periodId', 'status', 'createdBy', 'createdAt', 'correctsId']);
 
-        allow update, delete: if false;
+        allow update: if isMessManager(messId) &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status in ['approved', 'rejected'] &&
+          request.resource.data.reviewedBy == request.auth.uid &&
+          request.resource.data.reviewedAt == request.time &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'reviewedBy', 'reviewedAt']) &&
+          get(/databases/$(database)/documents/messes/$(messId)/periods/$(resource.data.periodId)).data.status == 'open';
+        allow delete: if false;
       }
 
       // Subcollection: Adjustments

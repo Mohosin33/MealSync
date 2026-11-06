@@ -86,9 +86,11 @@ public class MemberSummaryAdapter extends RecyclerView.Adapter<MemberSummaryAdap
             }
 
             int totalMeals = res.getLunches() + res.getDinners() + res.getGuests();
-            tvMeals.setText("Meals: " + totalMeals);
-            tvDeposits.setText("Deposits: " + MoneyUtils.formatPaisa(res.getTotalDepositsPaisa()));
-            tvCost.setText("Cost: " + MoneyUtils.formatPaisa(res.getMealCostPaisa() + res.getFixedSharePaisa()));
+            tvMeals.setText(context.getString(R.string.member_summary_meals, totalMeals));
+            tvDeposits.setText(context.getString(R.string.member_summary_deposits,
+                    MoneyUtils.formatPaisa(res.getTotalDepositsPaisa())));
+            tvCost.setText(context.getString(R.string.member_summary_cost,
+                    MoneyUtils.formatPaisa(res.getMealCostPaisa() + res.getFixedSharePaisa())));
         }
     }
 }

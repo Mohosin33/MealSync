@@ -62,9 +62,12 @@ public class MealHistoryAdapter extends RecyclerView.Adapter<MealHistoryAdapter.
 
         public void bind(Meal meal) {
             tvDate.setText(meal.getDate() != null ? meal.getDate() : "");
-            tvLunch.setText(meal.isLunch() ? "Lunch: ON" : "Lunch: OFF");
-            tvDinner.setText(meal.isDinner() ? "Dinner: ON" : "Dinner: OFF");
-            tvGuests.setText("Guests: " + meal.getGuests());
+            android.content.Context context = itemView.getContext();
+            tvLunch.setText(context.getString(R.string.label_lunch_status,
+                    context.getString(meal.isLunch() ? R.string.meal_status_on : R.string.meal_status_off)));
+            tvDinner.setText(context.getString(R.string.label_dinner_status,
+                    context.getString(meal.isDinner() ? R.string.meal_status_on : R.string.meal_status_off)));
+            tvGuests.setText(context.getString(R.string.label_guests_count, meal.getGuests()));
 
             tvPending.setVisibility(meal.isPending() ? View.VISIBLE : View.GONE);
         }

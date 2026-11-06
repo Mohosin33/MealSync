@@ -74,6 +74,7 @@ public class CloseMonthActivity extends AppCompatActivity {
 
     private String closeRequestId;
     private boolean isClosingInProgress = false;
+    private boolean depositsLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,6 +153,7 @@ public class CloseMonthActivity extends AppCompatActivity {
     private void observePreviewData() {
         removePreviewListeners();
         if (currentMess == null || currentPeriod == null) return;
+        depositsLoaded = false;
 
         String currentUid = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid() : "";
@@ -192,6 +194,7 @@ public class CloseMonthActivity extends AppCompatActivity {
                     public void onDepositsUpdated(List<Deposit> updatedDeposits) {
                         deposits.clear();
                         if (updatedDeposits != null) deposits.addAll(updatedDeposits);
+                        depositsLoaded = true;
                         renderPreview();
                     }
 
@@ -242,7 +245,7 @@ public class CloseMonthActivity extends AppCompatActivity {
         String startDate = PeriodDates.getFirstDay(periodId);
         String endDate = PeriodDates.getLastDay(periodId);
 
-        binding.tvPeriodDates.setText("Period: " + startDate + " to " + endDate);
+        binding.tvPeriodDates.setText(getString(R.string.label_period_dates, startDate, endDate));
 
         FinanceResult finRes = financeRepository.calculateLive(
                 currentMess, currentPeriod,
@@ -251,16 +254,16 @@ public class CloseMonthActivity extends AppCompatActivity {
 
         if (finRes != null) {
             String rateStr = finRes.isRateAvailable()
-                    ? MoneyUtils.formatPaisa(Math.round(finRes.getRatePaisaPerMeal())) + " / meal"
-                    : "Not set";
-            binding.tvPreviewRate.setText("Fixed Meal Rate: " + rateStr);
+                    ? getString(R.string.label_rate_per_meal,
+                    MoneyUtils.formatPaisa(Math.round(finRes.getRatePaisaPerMeal())))
+                    : getString(R.string.label_rate_not_set);
+            binding.tvPreviewRate.setText(getString(R.string.label_close_rate, rateStr));
 
             long totalMeals = finRes.getTotalCountedUnits() / 100;
             long mealCharges = finRes.isRateAvailable()
                     ? totalMeals * Math.round(finRes.getRatePaisaPerMeal()) : 0L;
-            String totalsStr = "Meals: " + (finRes.getTotalCountedUnits() / 100)
-                    + " | Meal Charges: " + MoneyUtils.formatPaisa(mealCharges)
-                    + " | Fixed Expenses: " + MoneyUtils.formatPaisa(finRes.getTotalFixedPaisa());
+            String totalsStr = getString(R.string.label_close_totals, totalMeals,
+                    MoneyUtils.formatPaisa(mealCharges), MoneyUtils.formatPaisa(finRes.getTotalFixedPaisa()));
             binding.tvPreviewTotals.setText(totalsStr);
 
             long sumSurplus = 0;
@@ -271,14 +274,23 @@ public class CloseMonthActivity extends AppCompatActivity {
                 if (bal < 0) sumOwed += Math.abs(bal);
             }
 
-            String memStr = "Members: " + finRes.getMemberResults().size()
-                    + " | Total Surplus: " + MoneyUtils.formatPaisa(sumSurplus)
-                    + " | Total Owed: " + MoneyUtils.formatPaisa(sumOwed);
+            String memStr = getString(R.string.label_close_member_totals, finRes.getMemberResults().size(),
+                    MoneyUtils.formatPaisa(sumSurplus), MoneyUtils.formatPaisa(sumOwed));
             binding.tvPreviewMembers.setText(memStr);
 
-            if (!finRes.isRateAvailable()) {
+            boolean hasPendingDeposits = false;
+            for (Deposit deposit : deposits) {
+                if ("pending".equalsIgnoreCase(deposit.getStatus())) {
+                    hasPendingDeposits = true;
+                    break;
+                }
+            }
+            if (hasPendingDeposits) {
                 binding.cardWarning.setVisibility(View.VISIBLE);
-                binding.tvWarningText.setText("Set a fixed meal rate in Mess Settings before closing this period.");
+                binding.tvWarningText.setText(R.string.approve_pending_deposits);
+            } else if (!finRes.isRateAvailable()) {
+                binding.cardWarning.setVisibility(View.VISIBLE);
+                binding.tvWarningText.setText(R.string.set_meal_rate_before_close);
             } else {
                 binding.cardWarning.setVisibility(View.GONE);
             }
@@ -287,7 +299,7 @@ public class CloseMonthActivity extends AppCompatActivity {
 
     private void showPreviewError(Exception error) {
         String message = error != null && error.getLocalizedMessage() != null
-                ? error.getLocalizedMessage() : "Failed to load month preview";
+                ? error.getLocalizedMessage() : getString(R.string.close_month_preview_failed);
         Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
     }
 
@@ -301,8 +313,18 @@ public class CloseMonthActivity extends AppCompatActivity {
 
     private void startMonthClose() {
         if (currentMess == null || currentPeriod == null || isClosingInProgress) return;
+        if (!depositsLoaded) {
+            Snackbar.make(binding.getRoot(), R.string.deposit_data_loading, Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        for (Deposit deposit : deposits) {
+            if ("pending".equalsIgnoreCase(deposit.getStatus())) {
+                Snackbar.make(binding.getRoot(), R.string.approve_pending_deposits, Snackbar.LENGTH_LONG).show();
+                return;
+            }
+        }
         if (currentMess.getMealRatePaisa() <= 0) {
-            Snackbar.make(binding.getRoot(), "Set a fixed meal rate in Mess Settings before closing this period.", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(binding.getRoot(), R.string.set_meal_rate_before_close, Snackbar.LENGTH_LONG).show();
             return;
         }
 
@@ -321,7 +343,7 @@ public class CloseMonthActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String nextPeriodId) {
                 isClosingInProgress = false;
-                Snackbar.make(binding.getRoot(), "Month closed successfully!", Snackbar.LENGTH_SHORT).show();
+                Snackbar.make(binding.getRoot(), R.string.month_closed_success, Snackbar.LENGTH_SHORT).show();
                 setResult(RESULT_OK);
                 finish();
             }

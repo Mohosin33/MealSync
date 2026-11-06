@@ -3,13 +3,19 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="ms_surface">#0F172A</color>
-    <color name="ms_card">#1E293B</color>
-    <color name="ms_divider">#334155</color>
-    <color name="ms_teal">#0D9488</color>
+    <color name="ms_surface">#F1F5F9</color>
+    <color name="ms_card">#FFFFFFFF</color>
+    <color name="ms_divider">#E2E8F0</color>
+    <color name="ms_teal">#0F766E</color>
+    <color name="ms_primary">#0F766E</color>
     <color name="ms_manager_end">#D97706</color>
-    <color name="ms_text_primary">#F8FAFC</color>
-    <color name="ms_text_secondary">#9CA3AF</color>
-    <color name="ms_negative">#EF4444</color>
-    <color name="ms_positive">#10B981</color>
+    <color name="ms_secondary">#92400E</color>
+    <color name="ms_text_primary">#0F172A</color>
+    <color name="ms_text_secondary">#475569</color>
+    <color name="ms_negative">#B91C1C</color>
+    <color name="ms_positive">#047857</color>
+    <color name="header_member_start">#0F766E</color>
+    <color name="header_member_end">#1E293B</color>
+    <color name="header_manager_start">#92400E</color>
+    <color name="header_manager_end">#1E293B</color>
 </resources>

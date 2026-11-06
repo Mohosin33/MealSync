@@ -156,7 +156,7 @@ public class AddDepositActivity extends AppCompatActivity {
     private void saveDeposit() {
         if (isSaving) return;
         if (!membersLoaded) {
-            Snackbar.make(binding.getRoot(), "Member data is still loading.", Snackbar.LENGTH_SHORT).show();
+            Snackbar.make(binding.getRoot(), R.string.loading_member_data, Snackbar.LENGTH_SHORT).show();
             return;
         }
 
@@ -183,7 +183,7 @@ public class AddDepositActivity extends AppCompatActivity {
             if (isManager) {
                 binding.tilMember.setError(getString(R.string.err_select_member));
             } else {
-                Snackbar.make(binding.getRoot(), "Your member profile could not be found.", Snackbar.LENGTH_LONG).show();
+                Snackbar.make(binding.getRoot(), R.string.member_profile_missing, Snackbar.LENGTH_LONG).show();
             }
             return;
         }
@@ -201,7 +201,7 @@ public class AddDepositActivity extends AppCompatActivity {
         }
 
         if (currentMess == null || currentMess.getCurrentPeriodId() == null) {
-            Snackbar.make(binding.getRoot(), "Period not initialized", Snackbar.LENGTH_LONG).show();
+            Snackbar.make(binding.getRoot(), R.string.period_not_initialized, Snackbar.LENGTH_LONG).show();
             return;
         }
 
@@ -211,7 +211,7 @@ public class AddDepositActivity extends AppCompatActivity {
         String periodId = currentMess.getCurrentPeriodId();
         Deposit deposit = new Deposit(depositFormId, targetMember.getUid(), amountPaisa, method, description, periodId, null, correctsId);
 
-        depositRepository.addDeposit(messId, deposit, new DepositRepository.ActionCallback() {
+        depositRepository.addDeposit(messId, deposit, isManager, new DepositRepository.ActionCallback() {
             @Override
             public void onSuccess() {
                 isSaving = false;

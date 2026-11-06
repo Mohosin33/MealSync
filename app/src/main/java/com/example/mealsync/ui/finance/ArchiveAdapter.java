@@ -71,13 +71,14 @@ public class ArchiveAdapter extends RecyclerView.Adapter<ArchiveAdapter.ArchiveV
         }
 
         public void bind(Period period, boolean isManager, OnArchiveClickListener listener) {
+            android.content.Context context = itemView.getContext();
             tvPeriodId.setText(period.getPeriodId() != null ? period.getPeriodId() : "");
 
             Long rate = period.getFinalRatePaisa();
             if (rate != null) {
-                tvRateBadge.setText(MoneyUtils.formatPaisa(rate) + " / meal");
+                tvRateBadge.setText(context.getString(R.string.label_rate_per_meal, MoneyUtils.formatPaisa(rate)));
             } else {
-                tvRateBadge.setText("Rate unavailable");
+                tvRateBadge.setText(R.string.label_rate_unavailable);
             }
 
             Map<String, Long> totals = period.getTotals();
@@ -88,8 +89,8 @@ public class ArchiveAdapter extends RecyclerView.Adapter<ArchiveAdapter.ArchiveV
                     : rate != null ? rate * meals : 0L;
             long fixPaisa = totals != null && totals.containsKey("totalFixedPaisa") ? totals.get("totalFixedPaisa") : 0L;
 
-            tvTotals.setText("Meals: " + meals + " | Meal Charges: " + MoneyUtils.formatPaisa(mealChargesPaisa)
-                    + " | Fixed Expenses: " + MoneyUtils.formatPaisa(fixPaisa));
+            tvTotals.setText(context.getString(R.string.label_archive_totals, meals,
+                    MoneyUtils.formatPaisa(mealChargesPaisa), MoneyUtils.formatPaisa(fixPaisa)));
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
