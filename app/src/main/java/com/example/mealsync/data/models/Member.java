@@ -5,17 +5,23 @@ public class Member {
     private String name;
     private String email;
     private String role;
+    private boolean includeInFixed = true;
     private long joinedAt;
 
     public Member() {
     }
 
-    public Member(String uid, String name, String email, String role, long joinedAt) {
+    public Member(String uid, String name, String email, String role, boolean includeInFixed, long joinedAt) {
         this.uid = uid;
         this.name = name;
         this.email = email;
         this.role = role;
+        this.includeInFixed = includeInFixed;
         this.joinedAt = joinedAt;
+    }
+
+    public Member(String uid, String name, String email, String role, long joinedAt) {
+        this(uid, name, email, role, true, joinedAt);
     }
 
     public String getUid() {
@@ -48,6 +54,14 @@ public class Member {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public boolean isIncludeInFixed() {
+        return includeInFixed;
+    }
+
+    public void setIncludeInFixed(boolean includeInFixed) {
+        this.includeInFixed = includeInFixed;
     }
 
     public long getJoinedAt() {

@@ -10,11 +10,16 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.WriteBatch;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +111,19 @@ public class MessRepository {
         long expiresAt = now + SEVEN_DAYS_MS;
         int utcOffsetMinutes = Mess.calculateUtcOffsetMinutes(timezone);
 
-        Mess mess = new Mess(messId, messName, uid, managerName, timezone, cutoffTime, code, utcOffsetMinutes, now);
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(timezone != null ? timezone.trim() : "Asia/Dhaka");
+        } catch (Exception e) {
+            zoneId = ZoneId.of("Asia/Dhaka");
+        }
+
+        ZonedDateTime zdt = ZonedDateTime.now(zoneId);
+        String periodId = zdt.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        String startDate = zdt.withDayOfMonth(1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String endDate = zdt.withDayOfMonth(zdt.toLocalDate().lengthOfMonth()).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
+        Mess mess = new Mess(messId, messName, uid, managerName, timezone, cutoffTime, code, utcOffsetMinutes, periodId, 100, "equal", now);
         Member member = new Member(uid, managerName, email, "manager", now);
         InvitationCode invitationCode = new InvitationCode(code, messId, uid, now, expiresAt, true);
 
@@ -118,11 +135,20 @@ public class MessRepository {
         userUpdate.put("role", "manager");
         userUpdate.put("createdAt", now);
 
+        Map<String, Object> periodData = new HashMap<>();
+        periodData.put("periodId", periodId);
+        periodData.put("status", "open");
+        periodData.put("startDate", startDate);
+        periodData.put("endDate", endDate);
+        periodData.put("openingBalances", Collections.emptyMap());
+        periodData.put("createdAt", FieldValue.serverTimestamp());
+
         WriteBatch batch = db.batch();
         batch.set(db.collection("users").document(uid), userUpdate);
         batch.set(messRef, mess);
         batch.set(messRef.collection("members").document(uid), member);
         batch.set(db.collection("invitationCodes").document(code), invitationCode);
+        batch.set(messRef.collection("periods").document(periodId), periodData);
 
         batch.commit().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
@@ -133,7 +159,8 @@ public class MessRepository {
         });
     }
 
-    public void updateMessSettings(String messId, String name, String timezone, String cutoffTime, ActionCallback callback) {
+    public void updateMessSettings(String messId, String name, String timezone, String cutoffTime,
+                                   long mealRatePaisa, ActionCallback callback) {
         int utcOffsetMinutes = Mess.calculateUtcOffsetMinutes(timezone);
 
         Map<String, Object> updates = new HashMap<>();
@@ -141,6 +168,7 @@ public class MessRepository {
         updates.put("timezone", timezone);
         updates.put("cutoffTime", cutoffTime);
         updates.put("utcOffsetMinutes", utcOffsetMinutes);
+        updates.put("mealRatePaisa", mealRatePaisa);
 
         db.collection("messes").document(messId)
                 .update(updates)
@@ -306,5 +334,17 @@ public class MessRepository {
                 callback.onFailure(task.getException());
             }
         });
+    }
+
+    public void updateIncludeInFixed(String messId, String memberUid, boolean includeInFixed, ActionCallback callback) {
+        db.collection("messes").document(messId).collection("members").document(memberUid)
+                .update("includeInFixed", includeInFixed)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (callback != null) callback.onSuccess();
+                    } else {
+                        if (callback != null) callback.onFailure(task.getException());
+                    }
+                });
     }
 }

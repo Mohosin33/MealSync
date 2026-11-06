@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="14dp"
+    app:cardElevation="1dp"
+    app:strokeColor="@color/ms_divider"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/tvArchivePeriodId"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentStart="true"
+                android:textColor="@color/ms_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="2025-05" />
+
+            <TextView
+                android:id="@+id/tvArchiveRateBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:background="@drawable/bg_toggle_track"
+                android:paddingStart="10dp"
+                android:paddingTop="3dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="3dp"
+                android:textColor="@color/ms_teal"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:text="FINAL ৳42.50 / meal" />
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/tvArchiveTotals"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@color/ms_text_secondary"
+            android:textSize="13sp"
+            tools:text="Meals: 140 | Meal Charges: ৳5,950 | Fixed Expenses: ৳3,000" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -12,13 +12,18 @@ public class Mess {
     private String cutoffTime;
     private String invitationCode;
     private int utcOffsetMinutes;
+    private String currentPeriodId;
+    private long mealRatePaisa;
+    private int guestWeightPercent = 100;
+    private String fixedSplitMode = "equal";
     private long createdAt;
 
     public Mess() {
     }
 
     public Mess(String messId, String name, String managerUid, String managerName,
-                String timezone, String cutoffTime, String invitationCode, int utcOffsetMinutes, long createdAt) {
+                String timezone, String cutoffTime, String invitationCode, int utcOffsetMinutes,
+                String currentPeriodId, int guestWeightPercent, String fixedSplitMode, long createdAt) {
         this.messId = messId;
         this.name = name;
         this.managerUid = managerUid;
@@ -27,6 +32,9 @@ public class Mess {
         this.cutoffTime = cutoffTime;
         this.invitationCode = invitationCode;
         this.utcOffsetMinutes = utcOffsetMinutes;
+        this.currentPeriodId = currentPeriodId;
+        this.guestWeightPercent = guestWeightPercent;
+        this.fixedSplitMode = fixedSplitMode;
         this.createdAt = createdAt;
     }
 
@@ -102,6 +110,38 @@ public class Mess {
 
     public void setUtcOffsetMinutes(int utcOffsetMinutes) {
         this.utcOffsetMinutes = utcOffsetMinutes;
+    }
+
+    public String getCurrentPeriodId() {
+        return currentPeriodId;
+    }
+
+    public void setCurrentPeriodId(String currentPeriodId) {
+        this.currentPeriodId = currentPeriodId;
+    }
+
+    public long getMealRatePaisa() {
+        return mealRatePaisa;
+    }
+
+    public void setMealRatePaisa(long mealRatePaisa) {
+        this.mealRatePaisa = mealRatePaisa;
+    }
+
+    public int getGuestWeightPercent() {
+        return guestWeightPercent;
+    }
+
+    public void setGuestWeightPercent(int guestWeightPercent) {
+        this.guestWeightPercent = guestWeightPercent;
+    }
+
+    public String getFixedSplitMode() {
+        return fixedSplitMode;
+    }
+
+    public void setFixedSplitMode(String fixedSplitMode) {
+        this.fixedSplitMode = fixedSplitMode;
     }
 
     public long getCreatedAt() {

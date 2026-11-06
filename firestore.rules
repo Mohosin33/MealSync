@@ -61,17 +61,59 @@ service cloud.firestore {
       allow create: if isSignedInAndVerified();
       allow update: if isMessManager(messId);
 
+      // Subcollection: Periods
+      match /periods/{periodId} {
+        allow read: if isMessMember(messId);
+
+        allow create: if isMessManager(messId) &&
+          periodId.matches('^[0-9]{4}-[0-9]{2}$') &&
+          request.resource.data.status == 'open';
+
+        allow update: if isMessManager(messId) &&
+          resource.data.status != 'closed' && (
+            (resource.data.status == 'open' &&
+             request.resource.data.status == 'closing' &&
+             request.resource.data.closeRequestId is string &&
+             request.resource.data.closingStartedAt == request.time &&
+             formatDate(request.time + duration.value(get(/databases/$(database)/documents/messes/$(messId)).data.utcOffsetMinutes, 'm')) >= resource.data.endDate
+            ) ||
+            (resource.data.status == 'closing' &&
+             request.resource.data.status == 'closed' &&
+             request.resource.data.closeRequestId == resource.data.closeRequestId &&
+             request.resource.data.closedAt == request.time &&
+             request.resource.data.closedBy == request.auth.uid &&
+             request.resource.data.nextPeriodId is string &&
+             exists(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.nextPeriodId)) &&
+             getAfter(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId == request.resource.data.nextPeriodId
+            )
+          );
+
+        allow delete: if isMessManager(messId) && resource.data.status == 'closed';
+
+        // Subcollection: Results
+        match /results/{uid} {
+          allow read: if isMessMember(messId) && (isMessManager(messId) || uid == request.auth.uid);
+          allow create, update: if isMessManager(messId) &&
+            exists(/databases/$(database)/documents/messes/$(messId)/periods/$(periodId)) &&
+            get(/databases/$(database)/documents/messes/$(messId)/periods/$(periodId)).data.status == 'closing';
+          allow delete: if isMessManager(messId);
+        }
+      }
+
       // Subcollection: Members
       match /members/{memberUid} {
         allow read: if isMessMember(messId);
         allow create: if isSignedInAndVerified() && request.auth.uid == memberUid;
-        allow update: if isUser(memberUid);
+        allow update: if isUser(memberUid) || (
+          isMessManager(messId) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['includeInFixed'])
+        );
         allow delete: if isMessManager(messId) || isUser(memberUid);
       }
 
       // Subcollection: Meals
       match /meals/{mealId} {
-        allow read: if isMessMember(messId) && (resource == null || resource.data.uid == request.auth.uid || isMessManager(messId));
+        allow read: if isMessMember(messId);
 
         allow create, update: if isMessMember(messId) &&
           request.resource.data.uid == request.auth.uid &&
@@ -95,6 +137,89 @@ service cloud.firestore {
           ) < get(/databases/$(database)/documents/messes/$(messId)).data.cutoffTime;
 
         allow delete: if false;
+      }
+
+      // Subcollection: Expenses
+      match /expenses/{expenseId} {
+        allow read: if isMessMember(messId);
+
+        allow create: if isMessManager(messId) &&
+          request.resource.data.amountPaisa is int &&
+          request.resource.data.amountPaisa >= 1 &&
+          request.resource.data.amountPaisa <= 100000000 &&
+          request.resource.data.type == 'fixed' &&
+          request.resource.data.category in ['groceries', 'utilities', 'wi_fi', 'cooks_salary', 'cleaning', 'maintenance', 'other'] &&
+          request.resource.data.description is string &&
+          request.resource.data.description.size() >= 1 &&
+          request.resource.data.description.size() <= 200 &&
+          exists(/databases/$(database)/documents/messes/$(messId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId is string &&
+          request.resource.data.periodId == get(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId &&
+          exists(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)).data.status == 'open' &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.createdAt == request.time &&
+          request.resource.data.keys().hasOnly(['id', 'amountPaisa', 'description', 'category', 'type', 'expenseDate', 'periodId', 'createdBy', 'createdAt', 'correctsId']);
+
+        allow update, delete: if false;
+      }
+
+      // Subcollection: Deposits
+      match /deposits/{depositId} {
+        allow read: if isMessMember(messId) && (isMessManager(messId) || resource == null || resource.data.memberId == request.auth.uid);
+
+        allow create: if isMessMember(messId) &&
+          (isMessManager(messId) || request.resource.data.memberId == request.auth.uid) &&
+          exists(/databases/$(database)/documents/messes/$(messId)/members/$(request.resource.data.memberId)) &&
+          request.resource.data.amountPaisa is int &&
+          request.resource.data.amountPaisa >= 1 &&
+          request.resource.data.amountPaisa <= 100000000 &&
+          request.resource.data.method in ['cash', 'bank', 'bkash', 'nagad', 'other'] &&
+          exists(/databases/$(database)/documents/messes/$(messId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId is string &&
+          request.resource.data.periodId == get(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId &&
+          exists(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)).data.status == 'open' &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.createdAt == request.time &&
+          request.resource.data.keys().hasOnly(['id', 'memberId', 'amountPaisa', 'method', 'description', 'periodId', 'createdBy', 'createdAt', 'correctsId']);
+
+        allow update, delete: if false;
+      }
+
+      // Subcollection: Adjustments
+      match /adjustments/{adjId} {
+        allow read: if isMessMember(messId) && (
+          resource.data.type == 'reversal' ||
+          isMessManager(messId) ||
+          resource.data.memberId == request.auth.uid
+        );
+
+        allow create: if isMessManager(messId) &&
+          request.resource.data.type in ['reversal', 'member_adjustment'] &&
+          exists(/databases/$(database)/documents/messes/$(messId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId is string &&
+          request.resource.data.periodId == get(/databases/$(database)/documents/messes/$(messId)).data.currentPeriodId &&
+          exists(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)) &&
+          get(/databases/$(database)/documents/messes/$(messId)/periods/$(request.resource.data.periodId)).data.status == 'open' &&
+          request.resource.data.createdBy == request.auth.uid &&
+          request.resource.data.createdAt == request.time &&
+          (
+            (request.resource.data.type == 'reversal' &&
+             request.resource.data.targetType in ['expense', 'deposit'] &&
+             (
+               (request.resource.data.targetType == 'expense' && exists(/databases/$(database)/documents/messes/$(messId)/expenses/$(request.resource.data.targetId))) ||
+               (request.resource.data.targetType == 'deposit' && exists(/databases/$(database)/documents/messes/$(messId)/deposits/$(request.resource.data.targetId)))
+             )
+            ) ||
+            (request.resource.data.type == 'member_adjustment' &&
+             exists(/databases/$(database)/documents/messes/$(messId)/members/$(request.resource.data.memberId)) &&
+             request.resource.data.amountPaisa is int &&
+             request.resource.data.amountPaisa != 0
+            )
+          );
+
+        allow update, delete: if false;
       }
     }
   }

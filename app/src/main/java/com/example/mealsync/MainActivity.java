@@ -7,50 +7,97 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Spinner;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
+import com.example.mealsync.close.PeriodDates;
+import com.example.mealsync.data.models.Adjustment;
 import com.example.mealsync.data.models.DayTotals;
+import com.example.mealsync.data.models.Deposit;
+import com.example.mealsync.data.models.Expense;
 import com.example.mealsync.data.models.Meal;
 import com.example.mealsync.data.models.Member;
 import com.example.mealsync.data.models.Mess;
+import com.example.mealsync.data.models.Period;
 import com.example.mealsync.data.models.UserProfile;
+import com.example.mealsync.data.repository.AdjustmentRepository;
 import com.example.mealsync.data.repository.AuthRepository;
+import com.example.mealsync.data.repository.DepositRepository;
+import com.example.mealsync.data.repository.ExpenseRepository;
+import com.example.mealsync.data.repository.FinanceRepository;
 import com.example.mealsync.data.repository.MealRepository;
 import com.example.mealsync.data.repository.MessRepository;
+import com.example.mealsync.data.repository.PeriodRepository;
 import com.example.mealsync.databinding.ActivityMainBinding;
+import com.example.mealsync.finance.FinanceResult;
+import com.example.mealsync.finance.MemberFinanceResult;
 import com.example.mealsync.ui.auth.WelcomeActivity;
+import com.example.mealsync.ui.finance.AddDepositActivity;
+import com.example.mealsync.ui.finance.AddExpenseActivity;
+import com.example.mealsync.ui.finance.ArchiveAdapter;
+import com.example.mealsync.ui.finance.ArchiveDetailActivity;
+import com.example.mealsync.ui.finance.CloseMonthActivity;
+import com.example.mealsync.ui.finance.DepositAdapter;
+import com.example.mealsync.ui.finance.ExpenseAdapter;
 import com.example.mealsync.ui.mess.ChooseActivity;
 import com.example.mealsync.ui.mess.MealHistoryAdapter;
 import com.example.mealsync.ui.mess.MemberAdapter;
+import com.example.mealsync.ui.mess.MemberSummaryAdapter;
 import com.example.mealsync.ui.mess.SettingsActivity;
 import com.example.mealsync.util.CutoffCalculator;
 import com.example.mealsync.util.CutoffResult;
+import com.example.mealsync.util.MoneyUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity implements MemberAdapter.OnRemoveMemberClickListener {
+public class MainActivity extends AppCompatActivity
+        implements MemberAdapter.OnRemoveMemberClickListener, MemberAdapter.OnIncludeInFixedToggleListener {
 
     private ActivityMainBinding binding;
     private final AuthRepository authRepository = new AuthRepository();
     private final MessRepository messRepository = new MessRepository();
     private final MealRepository mealRepository = new MealRepository();
+    private final PeriodRepository periodRepository = new PeriodRepository();
+    private final ExpenseRepository expenseRepository = new ExpenseRepository();
+    private final DepositRepository depositRepository = new DepositRepository();
+    private final AdjustmentRepository adjustmentRepository = new AdjustmentRepository();
+    private final FinanceRepository financeRepository = new FinanceRepository();
 
     private UserProfile currentProfile;
     private Mess currentMess;
+    private Period currentPeriod;
+
     private MemberAdapter memberAdapter;
     private MealHistoryAdapter mealHistoryAdapter;
+    private ExpenseAdapter expenseAdapter;
+    private DepositAdapter depositAdapter;
+    private MemberSummaryAdapter memberSummaryAdapter;
+    private ArchiveAdapter archiveAdapter;
 
     private ListenerRegistration messListener;
     private ListenerRegistration membersListener;
@@ -58,12 +105,28 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
     private ListenerRegistration myMealsListener;
     private ListenerRegistration dayTotalsListener;
 
+    private ListenerRegistration expensesListener;
+    private ListenerRegistration depositsListener;
+    private ListenerRegistration adjustmentsListener;
+    private ListenerRegistration periodMealsListener;
+    private ListenerRegistration archiveListener;
+
     private CutoffResult currentCutoffResult;
     private Meal tomorrowMeal;
     private boolean isUpdatingControls = false;
     private boolean isSavingMeal = false;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable timerRunnable = this::updateCutoffTimer;
+
+    private final Map<String, String> memberNamesMap = new HashMap<>();
+    private final List<Member> activeMemberList = new ArrayList<>();
+    private final List<Expense> currentExpensesList = new ArrayList<>();
+    private final List<Deposit> currentDepositsList = new ArrayList<>();
+    private final List<Adjustment> currentAdjustmentsList = new ArrayList<>();
+    private final List<Meal> currentPeriodMealsList = new ArrayList<>();
+
+    private final Set<String> reversedExpenseIds = new HashSet<>();
+    private final Set<String> reversedDepositIds = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
         applyWindowInsets();
         setupNavigation();
         setupListeners();
+        setupFinanceSubTabs();
         loadUserProfile(firebaseUser.getUid());
     }
 
@@ -104,6 +168,9 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
             } else if (itemId == R.id.nav_meals) {
                 showTab(R.id.tabMeals);
                 return true;
+            } else if (itemId == R.id.nav_money) {
+                showTab(R.id.tabMoney);
+                return true;
             } else if (itemId == R.id.nav_members) {
                 showTab(R.id.tabMembers);
                 return true;
@@ -118,8 +185,75 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
     private void showTab(int tabId) {
         binding.tabHome.setVisibility(tabId == R.id.tabHome ? View.VISIBLE : View.GONE);
         binding.tabMeals.setVisibility(tabId == R.id.tabMeals ? View.VISIBLE : View.GONE);
+        binding.tabMoney.setVisibility(tabId == R.id.tabMoney ? View.VISIBLE : View.GONE);
         binding.tabMembers.setVisibility(tabId == R.id.tabMembers ? View.VISIBLE : View.GONE);
         binding.tabProfile.setVisibility(tabId == R.id.tabProfile ? View.VISIBLE : View.GONE);
+    }
+
+    private void setupFinanceSubTabs() {
+        binding.btnSubExpenses.setOnClickListener(v -> showMoneySubPanel(R.id.panelSubExpenses));
+        binding.btnSubDeposits.setOnClickListener(v -> showMoneySubPanel(R.id.panelSubDeposits));
+        binding.btnSubSummary.setOnClickListener(v -> showMoneySubPanel(R.id.panelSubSummary));
+        binding.btnSubArchive.setOnClickListener(v -> {
+            showMoneySubPanel(R.id.panelSubArchive);
+            loadArchivePeriods();
+        });
+
+        binding.fabAddExpense.setOnClickListener(v -> {
+            if (currentMess != null) {
+                Intent intent = new Intent(this, AddExpenseActivity.class);
+                intent.putExtra(AddExpenseActivity.EXTRA_MESS_ID, currentMess.getMessId());
+                startActivity(intent);
+            }
+        });
+
+        binding.fabAddDeposit.setOnClickListener(v -> {
+            if (currentMess != null) {
+                Intent intent = new Intent(this, AddDepositActivity.class);
+                intent.putExtra(AddDepositActivity.EXTRA_MESS_ID, currentMess.getMessId());
+                startActivity(intent);
+            }
+        });
+
+        binding.btnMemberAdjustment.setOnClickListener(v -> showMemberAdjustmentDialog());
+
+        binding.btnCloseMonth.setOnClickListener(v -> openCloseMonthActivity());
+
+        binding.cardClosingBanner.setOnClickListener(v -> {
+            if (checkIsManager()) {
+                openCloseMonthActivity();
+            }
+        });
+    }
+
+    private boolean checkIsManager() {
+        FirebaseUser user = authRepository.getCurrentUser();
+        String currentUid = user != null ? user.getUid() : "";
+        if (currentMess != null && currentMess.getManagerUid() != null && currentMess.getManagerUid().equals(currentUid)) {
+            return true;
+        }
+        return currentProfile != null && "manager".equalsIgnoreCase(currentProfile.getRole());
+    }
+
+    private void openCloseMonthActivity() {
+        if (currentMess != null && currentPeriod != null) {
+            Intent intent = new Intent(this, CloseMonthActivity.class);
+            intent.putExtra(CloseMonthActivity.EXTRA_MESS_ID, currentMess.getMessId());
+            intent.putExtra(CloseMonthActivity.EXTRA_PERIOD_ID, currentPeriod.getPeriodId());
+            startActivity(intent);
+        } else if (currentMess != null && currentMess.getCurrentPeriodId() != null) {
+            Intent intent = new Intent(this, CloseMonthActivity.class);
+            intent.putExtra(CloseMonthActivity.EXTRA_MESS_ID, currentMess.getMessId());
+            intent.putExtra(CloseMonthActivity.EXTRA_PERIOD_ID, currentMess.getCurrentPeriodId());
+            startActivity(intent);
+        }
+    }
+
+    private void showMoneySubPanel(int panelId) {
+        binding.panelSubExpenses.setVisibility(panelId == R.id.panelSubExpenses ? View.VISIBLE : View.GONE);
+        binding.panelSubDeposits.setVisibility(panelId == R.id.panelSubDeposits ? View.VISIBLE : View.GONE);
+        binding.panelSubSummary.setVisibility(panelId == R.id.panelSubSummary ? View.VISIBLE : View.GONE);
+        binding.panelSubArchive.setVisibility(panelId == R.id.panelSubArchive ? View.VISIBLE : View.GONE);
     }
 
     private void setupListeners() {
@@ -180,6 +314,7 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
                 }
                 currentProfile = profile;
                 populateProfileUI(profile);
+                setupFinanceAdapters();
                 observeMessData(profile.getMessId());
             }
 
@@ -190,6 +325,66 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
         });
     }
 
+    private void setupFinanceAdapters() {
+        boolean isManager = checkIsManager();
+
+        expenseAdapter = new ExpenseAdapter(isManager, this::onExpenseLongClick);
+        binding.rvExpenses.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvExpenses.setAdapter(expenseAdapter);
+
+        depositAdapter = new DepositAdapter(isManager, this::onDepositLongClick);
+        binding.rvDeposits.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvDeposits.setAdapter(depositAdapter);
+
+        memberSummaryAdapter = new MemberSummaryAdapter();
+        binding.rvMemberSummaries.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvMemberSummaries.setAdapter(memberSummaryAdapter);
+
+        archiveAdapter = new ArchiveAdapter(isManager, new ArchiveAdapter.OnArchiveClickListener() {
+            @Override
+            public void onArchiveClick(Period p) {
+                if (currentMess != null) {
+                    Intent intent = new Intent(MainActivity.this, ArchiveDetailActivity.class);
+                    intent.putExtra(ArchiveDetailActivity.EXTRA_MESS_ID, currentMess.getMessId());
+                    intent.putExtra(ArchiveDetailActivity.EXTRA_PERIOD_ID, p.getPeriodId());
+                    startActivity(intent);
+                }
+            }
+
+            @Override
+            public void onArchiveLongClick(Period p) {
+                if (currentMess == null || p == null) return;
+                new MaterialAlertDialogBuilder(MainActivity.this)
+                        .setTitle("Delete Archive")
+                        .setMessage("Delete archived period " + p.getPeriodId() + "?")
+                        .setPositiveButton("Delete", (dialog, which) -> {
+                            periodRepository.deleteArchivedPeriod(currentMess.getMessId(), p.getPeriodId(), new PeriodRepository.ActionCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    Snackbar.make(binding.mainRoot, "Archived period deleted", Snackbar.LENGTH_SHORT).show();
+                                    loadArchivePeriods();
+                                }
+
+                                @Override
+                                public void onFailure(Exception error) {
+                                    String msg = error != null && error.getLocalizedMessage() != null
+                                            ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to delete archive");
+                                    Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
+                                }
+                            });
+                        })
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show();
+            }
+        });
+        binding.rvArchive.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvArchive.setAdapter(archiveAdapter);
+
+        binding.fabAddExpense.setVisibility(isManager ? View.VISIBLE : View.GONE);
+        binding.fabAddDeposit.setVisibility(View.VISIBLE);
+        binding.layoutManagerSummary.setVisibility(isManager ? View.VISIBLE : View.GONE);
+    }
+
     private void observeMessData(String messId) {
         if (messListener != null) messListener.remove();
         if (membersListener != null) membersListener.remove();
@@ -198,25 +393,35 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
             @Override
             public void onMessUpdated(Mess mess) {
                 currentMess = mess;
-                boolean isManager = currentProfile != null && "manager".equalsIgnoreCase(currentProfile.getRole());
+                boolean isManager = checkIsManager();
 
-                if (mess != null && mess.getUtcOffsetMinutes() == 0 && isManager) {
-                    messRepository.ensureMessSetup(mess, null);
+                if (mess != null && isManager) {
+                    if (mess.getUtcOffsetMinutes() == 0) {
+                        messRepository.ensureMessSetup(mess, null);
+                    }
+                    if (mess.getCurrentPeriodId() == null) {
+                        periodRepository.ensurePeriodSetup(mess, null);
+                    }
                 }
 
                 populateMessUI(mess);
                 updateMealDashboard();
+                updatePeriodStatusUI(currentPeriod);
+                if (mess != null && mess.getCurrentPeriodId() != null) {
+                    loadPeriodAndFinance(mess);
+                }
             }
 
             @Override
             public void onError(Exception error) {
+                showFinanceLoadError(error);
             }
         });
 
-        boolean isManager = currentProfile != null && "manager".equalsIgnoreCase(currentProfile.getRole());
+        boolean isManager = checkIsManager();
         String currentUid = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
 
-        memberAdapter = new MemberAdapter(isManager, currentUid, this);
+        memberAdapter = new MemberAdapter(isManager, currentUid, this, this);
         binding.rvMembers.setLayoutManager(new LinearLayoutManager(this));
         binding.rvMembers.setAdapter(memberAdapter);
 
@@ -226,14 +431,455 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
                 if (memberAdapter != null) {
                     memberAdapter.setMembers(members);
                 }
+                memberNamesMap.clear();
+                activeMemberList.clear();
+                if (members != null) {
+                    for (Member m : members) {
+                        activeMemberList.add(m);
+                        memberNamesMap.put(m.getUid(), m.getName() != null ? m.getName() : "Member");
+                    }
+                }
+                if (depositAdapter != null) {
+                    depositAdapter.setDeposits(currentDepositsList, reversedDepositIds, memberNamesMap);
+                }
+                recalculateAndRenderFinance();
             }
 
             @Override
             public void onError(Exception error) {
+                showFinanceLoadError(error);
             }
         });
 
         observePersonalMealHistory(messId, currentUid);
+    }
+
+    private void loadPeriodAndFinance(Mess mess) {
+        periodRepository.getPeriod(mess.getMessId(), mess.getCurrentPeriodId(), new PeriodRepository.PeriodCallback() {
+            @Override
+            public void onSuccess(Period period) {
+                if (period != null) {
+                    currentPeriod = period;
+                    updatePeriodStatusUI(period);
+                    observeFinanceLedger(mess, period);
+                    loadPeriodMeals(mess, period);
+                } else {
+                    periodRepository.ensurePeriodSetup(mess, new PeriodRepository.ActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            periodRepository.getPeriod(mess.getMessId(), mess.getCurrentPeriodId(), new PeriodRepository.PeriodCallback() {
+                                @Override
+                                public void onSuccess(Period p2) {
+                                    if (p2 != null) {
+                                        currentPeriod = p2;
+                                        updatePeriodStatusUI(p2);
+                                        observeFinanceLedger(mess, p2);
+                                        loadPeriodMeals(mess, p2);
+                                    }
+                                }
+
+                                @Override
+                                public void onFailure(Exception error) {
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onFailure(Exception error) {
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+            }
+        });
+    }
+
+    private void updatePeriodStatusUI(Period period) {
+        boolean isManager = checkIsManager();
+        String status = period != null && period.getStatus() != null ? period.getStatus() : "open";
+
+        if ("closing".equalsIgnoreCase(status)) {
+            binding.cardClosingBanner.setVisibility(View.VISIBLE);
+            binding.fabAddExpense.setVisibility(View.GONE);
+            binding.fabAddDeposit.setVisibility(View.GONE);
+            binding.layoutManagerCloseMonth.setVisibility(View.GONE);
+        } else if ("closed".equalsIgnoreCase(status)) {
+            binding.cardClosingBanner.setVisibility(View.GONE);
+            binding.fabAddExpense.setVisibility(View.GONE);
+            binding.fabAddDeposit.setVisibility(View.GONE);
+            binding.layoutManagerCloseMonth.setVisibility(View.GONE);
+        } else {
+            // OPEN
+            binding.cardClosingBanner.setVisibility(View.GONE);
+            binding.fabAddExpense.setVisibility(isManager ? View.VISIBLE : View.GONE);
+            binding.fabAddDeposit.setVisibility(View.VISIBLE);
+
+            if (isManager) {
+                binding.layoutManagerCloseMonth.setVisibility(View.VISIBLE);
+                String today = CutoffCalculator.calculate(Instant.now(), currentMess != null ? currentMess.getTimezone() : "Asia/Dhaka", currentMess != null ? currentMess.getCutoffTime() : "21:00").getTodayDate();
+                String currentMonthId = today.substring(0, 7);
+                String currentMonthLastDate = PeriodDates.getLastDay(currentMonthId);
+                boolean canClose = PeriodDates.canClose(today, currentMonthLastDate);
+
+                binding.btnCloseMonth.setEnabled(canClose);
+                if (canClose) {
+                    binding.tvCloseMonthSubtitle.setVisibility(View.GONE);
+                } else {
+                    binding.tvCloseMonthSubtitle.setVisibility(View.VISIBLE);
+                    binding.tvCloseMonthSubtitle.setText("You can close this month from " + currentMonthLastDate);
+                }
+            } else {
+                binding.layoutManagerCloseMonth.setVisibility(View.GONE);
+            }
+        }
+    }
+
+    private void loadArchivePeriods() {
+        if (currentMess == null) return;
+        if (archiveListener != null) archiveListener.remove();
+
+        archiveListener = FirebaseFirestore.getInstance()
+                .collection("messes").document(currentMess.getMessId()).collection("periods")
+                .whereEqualTo("status", "closed")
+                .addSnapshotListener((snapshot, error) -> {
+                    if (snapshot != null) {
+                        List<Period> closedPeriods = new ArrayList<>();
+                        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                            Period p = doc.toObject(Period.class);
+                            if (p != null) closedPeriods.add(p);
+                        }
+                        archiveAdapter.setPeriods(closedPeriods);
+                        binding.tvArchiveEmpty.setVisibility(closedPeriods.isEmpty() ? View.VISIBLE : View.GONE);
+                    }
+                });
+    }
+
+    private void observeFinanceLedger(Mess mess, Period period) {
+        if (expensesListener != null) expensesListener.remove();
+        if (depositsListener != null) depositsListener.remove();
+        if (adjustmentsListener != null) adjustmentsListener.remove();
+
+        String messId = mess.getMessId();
+        String periodId = period.getPeriodId();
+        boolean isManager = checkIsManager();
+        String currentUid = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
+
+        expensesListener = expenseRepository.observeExpenses(messId, periodId, new ExpenseRepository.ExpensesListener() {
+            @Override
+            public void onExpensesUpdated(List<Expense> expenses) {
+                currentExpensesList.clear();
+                if (expenses != null) currentExpensesList.addAll(expenses);
+                if (expenseAdapter != null) {
+                    expenseAdapter.setExpenses(currentExpensesList, reversedExpenseIds);
+                }
+                recalculateAndRenderFinance();
+            }
+
+            @Override
+            public void onError(Exception error) {
+                showFinanceLoadError(error);
+            }
+        });
+
+        depositsListener = depositRepository.observeDeposits(messId, periodId, isManager, currentUid, new DepositRepository.DepositsListener() {
+            @Override
+            public void onDepositsUpdated(List<Deposit> deposits) {
+                currentDepositsList.clear();
+                if (deposits != null) currentDepositsList.addAll(deposits);
+                if (depositAdapter != null) {
+                    depositAdapter.setDeposits(currentDepositsList, reversedDepositIds, memberNamesMap);
+                }
+                recalculateAndRenderFinance();
+            }
+
+            @Override
+            public void onError(Exception error) {
+                showFinanceLoadError(error);
+            }
+        });
+
+        adjustmentsListener = adjustmentRepository.observeAdjustments(messId, periodId, new AdjustmentRepository.AdjustmentsListener() {
+            @Override
+            public void onAdjustmentsUpdated(List<Adjustment> adjustments) {
+                currentAdjustmentsList.clear();
+                if (adjustments != null) currentAdjustmentsList.addAll(adjustments);
+
+                reversedExpenseIds.clear();
+                reversedDepositIds.clear();
+                for (Adjustment adj : currentAdjustmentsList) {
+                    if ("reversal".equalsIgnoreCase(adj.getType())) {
+                        if ("expense".equalsIgnoreCase(adj.getTargetType())) {
+                            reversedExpenseIds.add(adj.getTargetId());
+                        } else if ("deposit".equalsIgnoreCase(adj.getTargetType())) {
+                            reversedDepositIds.add(adj.getTargetId());
+                        }
+                    }
+                }
+                if (expenseAdapter != null) {
+                    expenseAdapter.setExpenses(currentExpensesList, reversedExpenseIds);
+                }
+                if (depositAdapter != null) {
+                    depositAdapter.setDeposits(currentDepositsList, reversedDepositIds, memberNamesMap);
+                }
+                recalculateAndRenderFinance();
+            }
+
+            @Override
+            public void onError(Exception error) {
+                showFinanceLoadError(error);
+            }
+        });
+    }
+
+    private void loadPeriodMeals(Mess mess, Period period) {
+        if (periodMealsListener != null) periodMealsListener.remove();
+
+        CutoffResult cutoffRes = CutoffCalculator.calculate(Instant.now(), mess.getTimezone(), mess.getCutoffTime());
+        String startDate = period.getStartDate() != null ? period.getStartDate() : period.getPeriodId() + "-01";
+        String endDate = period.getEndDate() != null ? period.getEndDate() : PeriodDates.getLastDay(period.getPeriodId());
+
+        periodMealsListener = FirebaseFirestore.getInstance()
+                .collection("messes").document(mess.getMessId()).collection("meals")
+                .whereGreaterThanOrEqualTo("date", startDate)
+                .whereLessThanOrEqualTo("date", endDate)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        showFinanceLoadError(error);
+                        return;
+                    }
+                    currentPeriodMealsList.clear();
+                    if (snapshot != null) {
+                        for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                            Meal m = doc.toObject(Meal.class);
+                            if (m != null) {
+                                currentPeriodMealsList.add(m);
+                            }
+                        }
+                    }
+                    recalculateAndRenderFinance();
+                });
+    }
+
+    private void recalculateAndRenderFinance() {
+        if (currentMess == null || currentPeriod == null) return;
+        FinanceResult result = financeRepository.calculateLive(
+                currentMess, currentPeriod,
+                currentExpensesList, currentDepositsList, currentAdjustmentsList,
+                activeMemberList, currentPeriodMealsList
+        );
+        renderFinanceUI(result);
+    }
+
+    private void renderFinanceUI(FinanceResult result) {
+        if (result == null) return;
+
+        String currentUid = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
+        MemberFinanceResult myRes = result.getMemberResults().get(currentUid);
+
+        // Show the manager-configured meal rate on the summary and home dashboard.
+        String rateText = result.isRateAvailable()
+                ? MoneyUtils.formatPaisa(Math.round(result.getRatePaisaPerMeal())) + " / meal"
+                : "Not set";
+        binding.tvSummaryRate.setText(rateText);
+
+        String dashboardRateText = result.isRateAvailable()
+                ? MoneyUtils.formatPaisa(Math.round(result.getRatePaisaPerMeal()))
+                : "Not set";
+        binding.tvHomeMealRate.setText(dashboardRateText);
+
+        binding.tvSummaryTotalFixed.setText(MoneyUtils.formatPaisa(result.getTotalFixedPaisa()));
+
+        if (myRes != null) {
+            binding.tvSummaryMyMealCharge.setText(MoneyUtils.formatPaisa(myRes.getMealCostPaisa()));
+            binding.tvHomeMealCharge.setText(MoneyUtils.formatPaisa(myRes.getMealCostPaisa()));
+            binding.tvSummaryMyFixedShare.setText(MoneyUtils.formatPaisa(myRes.getFixedSharePaisa()));
+            long netBalance = myRes.getNetBalancePaisa();
+            String balanceFormatted = MoneyUtils.formatPaisa(netBalance);
+            binding.tvSummaryMyBalance.setText(balanceFormatted);
+            binding.tvHomePersonalBalance.setText(balanceFormatted + " (Estimated)");
+            binding.tvHomeTotalDeposits.setText(MoneyUtils.formatPaisa(myRes.getTotalDepositsPaisa()));
+
+            if (netBalance > 0) {
+                binding.tvSummaryMyBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_teal));
+                binding.tvHomePersonalBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_teal));
+            } else if (netBalance < 0) {
+                binding.tvSummaryMyBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_negative));
+                binding.tvHomePersonalBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_negative));
+            } else {
+                binding.tvSummaryMyBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_text_secondary));
+                binding.tvHomePersonalBalance.setTextColor(ContextCompat.getColor(this, R.color.ms_text_secondary));
+            }
+        }
+
+        // Update Manager Summary Breakdown
+        if (memberSummaryAdapter != null) {
+            List<MemberFinanceResult> allRes = new ArrayList<>(result.getMemberResults().values());
+            memberSummaryAdapter.setResults(allRes, memberNamesMap);
+        }
+    }
+
+    private void showFinanceLoadError(Exception error) {
+        String message = error != null && error.getLocalizedMessage() != null
+                ? error.getLocalizedMessage() : "Failed to load finance data";
+        Snackbar.make(binding.mainRoot, message, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void onExpenseLongClick(Expense expense) {
+        if (currentMess == null || currentPeriod == null) return;
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Correct Expense")
+                .setMessage("Choose an action for this expense: " + expense.getDescription())
+                .setPositiveButton("Reverse", (dialog, which) -> showReversalDialog("expense", expense.getId(), null))
+                .setNeutralButton("Reverse & Re-enter", (dialog, which) -> showReversalDialog("expense", expense.getId(), () -> {
+                    Intent intent = new Intent(this, AddExpenseActivity.class);
+                    intent.putExtra(AddExpenseActivity.EXTRA_MESS_ID, currentMess.getMessId());
+                    intent.putExtra(AddExpenseActivity.EXTRA_CORRECTS_ID, expense.getId());
+                    startActivity(intent);
+                }))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void onDepositLongClick(Deposit deposit) {
+        if (currentMess == null || currentPeriod == null) return;
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Correct Deposit")
+                .setMessage("Choose an action for this deposit.")
+                .setPositiveButton("Reverse", (dialog, which) -> showReversalDialog("deposit", deposit.getId(), null))
+                .setNeutralButton("Reverse & Re-enter", (dialog, which) -> showReversalDialog("deposit", deposit.getId(), () -> {
+                    Intent intent = new Intent(this, AddDepositActivity.class);
+                    intent.putExtra(AddDepositActivity.EXTRA_MESS_ID, currentMess.getMessId());
+                    intent.putExtra(AddDepositActivity.EXTRA_CORRECTS_ID, deposit.getId());
+                    startActivity(intent);
+                }))
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showReversalDialog(String targetType, String targetId, Runnable onReversed) {
+        if (currentMess == null || currentMess.getCurrentPeriodId() == null) return;
+
+        EditText etReason = new EditText(this);
+        etReason.setHint("Reason for reversal");
+        etReason.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad / 2, pad, pad / 2);
+        container.addView(etReason);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.reverse_confirm_title)
+                .setMessage(R.string.reverse_confirm_msg)
+                .setView(container)
+                .setPositiveButton(R.string.reverse_entry, (dialog, which) -> {
+                    String reason = etReason.getText().toString().trim();
+                    if (reason.isEmpty()) reason = "Correction";
+
+                    String adjId = UUID.randomUUID().toString();
+                    String periodId = currentMess.getCurrentPeriodId();
+                    String createdBy = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
+
+                    Adjustment reversal = Adjustment.createReversal(adjId, targetType, targetId, reason, periodId, createdBy);
+
+                    adjustmentRepository.addAdjustment(currentMess.getMessId(), reversal, new AdjustmentRepository.ActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            Snackbar.make(binding.mainRoot, "Entry reversed", Snackbar.LENGTH_SHORT).show();
+                            if (onReversed != null) onReversed.run();
+                        }
+
+                        @Override
+                        public void onFailure(Exception error) {
+                            String msg = error != null && error.getLocalizedMessage() != null
+                                    ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to reverse");
+                            Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
+    }
+
+    private void showMemberAdjustmentDialog() {
+        if (currentMess == null || currentMess.getCurrentPeriodId() == null || activeMemberList.isEmpty()) return;
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
+        container.setPadding(pad, pad / 2, pad, pad / 2);
+
+        Spinner spinnerMembers = new Spinner(this);
+        List<String> names = new ArrayList<>();
+        for (Member m : activeMemberList) {
+            names.add(m.getName() != null ? m.getName() : "Member");
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names);
+        spinnerMembers.setAdapter(adapter);
+
+        EditText etAmount = new EditText(this);
+        etAmount.setHint("Amount in Taka (+ credit, - refund/debit)");
+        etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+
+        EditText etReason = new EditText(this);
+        etReason.setHint("Reason for adjustment");
+        etReason.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+
+        container.addView(spinnerMembers);
+        container.addView(etAmount);
+        container.addView(etReason);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.member_adjustment_title)
+                .setView(container)
+                .setPositiveButton(R.string.save_adjustment_btn, (dialog, which) -> {
+                    int sel = spinnerMembers.getSelectedItemPosition();
+                    if (sel < 0 || sel >= activeMemberList.size()) return;
+
+                    Member target = activeMemberList.get(sel);
+                    String amtStr = etAmount.getText().toString().trim();
+                    String reason = etReason.getText().toString().trim();
+
+                    if (amtStr.isEmpty() || reason.isEmpty()) return;
+
+                    boolean negative = amtStr.startsWith("-");
+                    String absAmtStr = negative ? amtStr.substring(1) : amtStr;
+
+                    long absPaisa;
+                    try {
+                        absPaisa = MoneyUtils.parseTakaToPaisa(absAmtStr);
+                    } catch (Exception e) {
+                        Snackbar.make(binding.mainRoot, "Invalid amount", Snackbar.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    long signedPaisa = negative ? -absPaisa : absPaisa;
+                    String adjId = UUID.randomUUID().toString();
+                    String periodId = currentMess.getCurrentPeriodId();
+                    String createdBy = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
+
+                    Adjustment adj = Adjustment.createMemberAdjustment(adjId, target.getUid(), signedPaisa, reason, periodId, createdBy);
+
+                    adjustmentRepository.addAdjustment(currentMess.getMessId(), adj, new AdjustmentRepository.ActionCallback() {
+                        @Override
+                        public void onSuccess() {
+                            Snackbar.make(binding.mainRoot, "Adjustment saved", Snackbar.LENGTH_SHORT).show();
+                        }
+
+                        @Override
+                        public void onFailure(Exception error) {
+                            String msg = error != null && error.getLocalizedMessage() != null
+                                    ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to save adjustment");
+                            Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
+                        }
+                    });
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .show();
     }
 
     private void observePersonalMealHistory(String messId, String uid) {
@@ -290,7 +936,7 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
         binding.tvHomeTodayDate.setText("Today: " + currentCutoffResult.getTodayDate());
         binding.tvTomorrowHeader.setText("Tomorrow's Meals (" + currentCutoffResult.getTomorrowDate() + ")");
 
-        boolean isManager = currentProfile != null && "manager".equalsIgnoreCase(currentProfile.getRole());
+        boolean isManager = checkIsManager();
         boolean needsSetup = currentMess.getUtcOffsetMinutes() == 0;
 
         if (needsSetup && !isManager) {
@@ -421,7 +1067,7 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
     private void populateProfileUI(UserProfile profile) {
         binding.tvProfileName.setText(profile.getDisplayName() != null ? profile.getDisplayName() : "User");
         binding.tvProfileEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
-        boolean isManager = "manager".equalsIgnoreCase(profile.getRole());
+        boolean isManager = checkIsManager();
         binding.tvProfileRole.setText(isManager ? R.string.role_badge_manager : R.string.role_badge_member);
         binding.btnSettings.setVisibility(isManager ? View.VISIBLE : View.GONE);
     }
@@ -430,7 +1076,7 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
         if (mess == null) return;
         binding.tvHomeMessName.setText(mess.getName());
 
-        boolean isManager = currentProfile != null && "manager".equalsIgnoreCase(currentProfile.getRole());
+        boolean isManager = checkIsManager();
         binding.layoutManagerCodeActions.setVisibility(isManager ? View.VISIBLE : View.GONE);
 
         if (mess.getInvitationCode() != null && !mess.getInvitationCode().isEmpty()) {
@@ -520,6 +1166,24 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
                 .show();
     }
 
+    @Override
+    public void onIncludeInFixedToggled(Member member, boolean includeInFixed) {
+        if (currentMess == null || member == null) return;
+        messRepository.updateIncludeInFixed(currentMess.getMessId(), member.getUid(), includeInFixed, new MessRepository.ActionCallback() {
+            @Override
+            public void onSuccess() {
+                Snackbar.make(binding.mainRoot, "Fixed share setting updated", Snackbar.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+                String msg = error != null && error.getLocalizedMessage() != null
+                        ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to update setting");
+                Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
+            }
+        });
+    }
+
     private void openChooseScreen() {
         Intent intent = new Intent(this, ChooseActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -542,6 +1206,11 @@ public class MainActivity extends AppCompatActivity implements MemberAdapter.OnR
         if (myMealListener != null) myMealListener.remove();
         if (myMealsListener != null) myMealsListener.remove();
         if (dayTotalsListener != null) dayTotalsListener.remove();
+        if (expensesListener != null) expensesListener.remove();
+        if (depositsListener != null) depositsListener.remove();
+        if (adjustmentsListener != null) adjustmentsListener.remove();
+        if (periodMealsListener != null) periodMealsListener.remove();
+        if (archiveListener != null) archiveListener.remove();
         super.onDestroy();
     }
 }

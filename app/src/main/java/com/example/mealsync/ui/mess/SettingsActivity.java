@@ -15,6 +15,7 @@ import com.example.mealsync.data.models.Mess;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivitySettingsBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.util.MoneyUtils;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
@@ -70,10 +71,12 @@ public class SettingsActivity extends AppCompatActivity {
             public void afterTextChanged(Editable s) {
                 binding.tilMessName.setError(null);
                 binding.tilTimezone.setError(null);
+                binding.tilMealRate.setError(null);
             }
         };
         binding.etMessName.addTextChangedListener(clearWatcher);
         binding.etTimezone.addTextChangedListener(clearWatcher);
+        binding.etMealRate.addTextChangedListener(clearWatcher);
     }
 
     private void loadMessData() {
@@ -95,6 +98,11 @@ public class SettingsActivity extends AppCompatActivity {
                     if (binding.etCutoffTime.getText() == null || binding.etCutoffTime.getText().toString().isEmpty()) {
                         binding.etCutoffTime.setText(mess.getCutoffTime());
                         parseCutoffTime(mess.getCutoffTime());
+                    }
+                    if (binding.etMealRate.getText() == null || binding.etMealRate.getText().toString().isEmpty()) {
+                        binding.etMealRate.setText(mess.getMealRatePaisa() > 0
+                                ? String.format(Locale.US, "%.2f", mess.getMealRatePaisa() / 100.0)
+                                : "");
                     }
                 }
             }
@@ -138,6 +146,8 @@ public class SettingsActivity extends AppCompatActivity {
         String name = binding.etMessName.getText() != null ? binding.etMessName.getText().toString().trim() : "";
         String timezone = binding.etTimezone.getText() != null ? binding.etTimezone.getText().toString().trim() : "";
         String cutoffTime = binding.etCutoffTime.getText() != null ? binding.etCutoffTime.getText().toString().trim() : "";
+        String mealRateText = binding.etMealRate.getText() != null ? binding.etMealRate.getText().toString().trim() : "";
+        long mealRatePaisa;
 
         if (name.isEmpty()) {
             binding.tilMessName.setError(getString(R.string.err_empty_mess_name));
@@ -149,9 +159,15 @@ public class SettingsActivity extends AppCompatActivity {
         if (cutoffTime.isEmpty()) {
             cutoffTime = "21:00";
         }
+        try {
+            mealRatePaisa = MoneyUtils.parseTakaToPaisa(mealRateText);
+        } catch (IllegalArgumentException e) {
+            binding.tilMealRate.setError(getString(R.string.err_invalid_meal_rate));
+            return;
+        }
 
         setLoading(true);
-        messRepository.updateMessSettings(messId, name, timezone, cutoffTime, new MessRepository.ActionCallback() {
+        messRepository.updateMessSettings(messId, name, timezone, cutoffTime, mealRatePaisa, new MessRepository.ActionCallback() {
             @Override
             public void onSuccess() {
                 setLoading(false);
