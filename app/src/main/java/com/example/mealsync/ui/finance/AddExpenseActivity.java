@@ -1,7 +1,6 @@
 package com.example.mealsync.ui.finance;
 
 import android.os.Bundle;
-import android.text.Editable;
 import android.view.View;
 import android.widget.ArrayAdapter;
 
@@ -18,6 +17,7 @@ import com.example.mealsync.data.repository.ExpenseRepository;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityAddExpenseBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.util.CutoffCalculator;
 import com.example.mealsync.util.CutoffResult;
 import com.example.mealsync.util.MoneyUtils;
@@ -43,9 +43,10 @@ public class AddExpenseActivity extends AppCompatActivity {
     private String correctsId;
     private Mess currentMess;
     private boolean isSaving = false;
-    private final String[] categories = new String[]{
+    private static final String[] CATEGORY_VALUES = new String[]{
             "groceries", "utilities", "wi_fi", "cooks_salary", "cleaning", "maintenance", "other"
     };
+    private String[] categoryLabels;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +61,7 @@ public class AddExpenseActivity extends AppCompatActivity {
         correctsId = getIntent().getStringExtra(EXTRA_CORRECTS_ID);
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_manager);
         setupDropdown();
         setupListeners();
         loadMessData();
@@ -78,9 +80,18 @@ public class AddExpenseActivity extends AppCompatActivity {
     }
 
     private void setupDropdown() {
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, categories);
+        categoryLabels = new String[]{
+                getString(R.string.category_groceries),
+                getString(R.string.category_utilities),
+                getString(R.string.category_wifi),
+                getString(R.string.category_cooks_salary),
+                getString(R.string.category_cleaning),
+                getString(R.string.category_maintenance),
+                getString(R.string.category_other)
+        };
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, categoryLabels);
         binding.actCategory.setAdapter(adapter);
-        binding.actCategory.setText(categories[0], false);
+        binding.actCategory.setText(categoryLabels[0], false);
     }
 
     private void setupListeners() {
@@ -89,15 +100,12 @@ public class AddExpenseActivity extends AppCompatActivity {
         binding.tilDate.setOnClickListener(v -> showDatePicker());
         binding.btnSaveExpense.setOnClickListener(v -> saveExpense());
 
-        SimpleTextWatcher clearWatcher = new SimpleTextWatcher() {
+        binding.etAmount.addTextChangedListener(new SimpleTextWatcher() {
             @Override
-            public void afterTextChanged(Editable s) {
+            public void afterTextChanged(android.text.Editable s) {
                 binding.tilAmount.setError(null);
-                binding.tilDescription.setError(null);
             }
-        };
-        binding.etAmount.addTextChangedListener(clearWatcher);
-        binding.etDescription.addTextChangedListener(clearWatcher);
+        });
     }
 
     private void loadMessData() {
@@ -138,8 +146,22 @@ public class AddExpenseActivity extends AppCompatActivity {
         if (isSaving) return;
 
         String amountStr = binding.etAmount.getText() != null ? binding.etAmount.getText().toString().trim() : "";
-        String description = binding.etDescription.getText() != null ? binding.etDescription.getText().toString().trim() : "";
-        String category = binding.actCategory.getText() != null ? binding.actCategory.getText().toString().trim() : "groceries";
+        String selectedCategory = binding.actCategory.getText() != null
+                ? binding.actCategory.getText().toString().trim() : "";
+        int categoryIndex = -1;
+        for (int i = 0; i < categoryLabels.length; i++) {
+            if (categoryLabels[i].equals(selectedCategory)) {
+                categoryIndex = i;
+                break;
+            }
+        }
+        if (categoryIndex < 0) {
+            binding.tilCategory.setError(getString(R.string.err_select_category));
+            return;
+        }
+        binding.tilCategory.setError(null);
+        String category = CATEGORY_VALUES[categoryIndex];
+        String description = categoryLabels[categoryIndex];
         String dateStr = binding.etDate.getText() != null ? binding.etDate.getText().toString().trim() : "";
 
         long amountPaisa;
@@ -147,11 +169,6 @@ public class AddExpenseActivity extends AppCompatActivity {
             amountPaisa = MoneyUtils.parseTakaToPaisa(amountStr);
         } catch (IllegalArgumentException e) {
             binding.tilAmount.setError(getString(R.string.err_generic, "Invalid amount"));
-            return;
-        }
-
-        if (description.isEmpty()) {
-            binding.tilDescription.setError(getString(R.string.err_empty_description));
             return;
         }
 

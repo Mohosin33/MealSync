@@ -16,6 +16,7 @@ import com.example.mealsync.R;
 import com.example.mealsync.data.repository.AuthRepository;
 import com.example.mealsync.databinding.ActivityRegisterBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -40,6 +41,9 @@ public class RegisterActivity extends AppCompatActivity {
         }
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_member);
+        binding.header.setBackgroundResource(AuthExtras.ROLE_MANAGER.equalsIgnoreCase(role)
+                ? R.drawable.bg_gradient_manager : R.drawable.bg_gradient_member);
         setupListeners();
     }
 

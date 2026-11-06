@@ -21,6 +21,7 @@ import com.example.mealsync.data.repository.PeriodRepository;
 import com.example.mealsync.databinding.ActivityArchiveDetailBinding;
 import com.example.mealsync.finance.MemberFinanceResult;
 import com.example.mealsync.ui.mess.MemberSummaryAdapter;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.util.MoneyUtils;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -64,6 +65,7 @@ public class ArchiveDetailActivity extends AppCompatActivity {
         periodId = getIntent().getStringExtra(EXTRA_PERIOD_ID);
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_member);
         binding.btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
 
         memberSummaryAdapter = new MemberSummaryAdapter();

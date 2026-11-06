@@ -225,6 +225,13 @@
     <string name="amount_taka_hint">Amount in Taka (e.g. 500 or 12.50)</string>
     <string name="description_hint">Description</string>
     <string name="category_hint">Category</string>
+    <string name="category_groceries">Groceries</string>
+    <string name="category_utilities">Utilities</string>
+    <string name="category_wifi">Wi-Fi</string>
+    <string name="category_cooks_salary">Cook’s salary</string>
+    <string name="category_cleaning">Cleaning</string>
+    <string name="category_maintenance">Maintenance</string>
+    <string name="category_other">Other</string>
     <string name="method_hint">Payment Method</string>
     <string name="member_hint">Select Member</string>
     <string name="type_fixed">Fixed Expense</string>
@@ -234,6 +241,7 @@
 
     <string name="err_empty_description">Enter a description.</string>
     <string name="err_select_member">Select a member.</string>
+    <string name="err_select_category">Select a category from the list.</string>
 
     <string name="reverse_entry">Reverse</string>
     <string name="reverse_and_reenter">Reverse &amp; Re-enter</string>

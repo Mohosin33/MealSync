@@ -13,6 +13,7 @@
         android:background="@drawable/bg_gradient_manager" />
 
     <ScrollView
+        android:id="@+id/scrollContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
@@ -91,26 +92,6 @@
                         android:layout_height="wrap_content"
                         android:inputType="numberDecimal"
                         android:maxLines="1" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    android:id="@+id/tilDescription"
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:hint="@string/description_hint"
-                    app:boxCornerRadiusBottomEnd="14dp"
-                    app:boxCornerRadiusBottomStart="14dp"
-                    app:boxCornerRadiusTopEnd="14dp"
-                    app:boxCornerRadiusTopStart="14dp">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etDescription"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="textCapSentences"
-                        android:maxLines="2" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout

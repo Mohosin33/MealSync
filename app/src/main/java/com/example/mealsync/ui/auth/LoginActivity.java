@@ -30,6 +30,7 @@ import com.example.mealsync.data.repository.AuthRepository;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityLoginBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.ui.mess.ChooseActivity;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
@@ -63,6 +64,7 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_member);
         applyRoleTheme();
         setupListeners();
     }
@@ -80,6 +82,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void applyRoleTheme() {
+        binding.header.setBackgroundResource(managerSelected
+                ? R.drawable.bg_gradient_manager : R.drawable.bg_gradient_member);
         int accent = ContextCompat.getColor(this,
                 managerSelected ? R.color.ms_manager_end : R.color.ms_teal);
         binding.bgManager.setAlpha(managerSelected ? 1f : 0f);

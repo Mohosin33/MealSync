@@ -12,7 +12,6 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Spinner;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
@@ -54,7 +53,6 @@ import com.example.mealsync.ui.finance.ExpenseAdapter;
 import com.example.mealsync.ui.mess.ChooseActivity;
 import com.example.mealsync.ui.mess.MealHistoryAdapter;
 import com.example.mealsync.ui.mess.MemberAdapter;
-import com.example.mealsync.ui.mess.MemberSummaryAdapter;
 import com.example.mealsync.ui.mess.SettingsActivity;
 import com.example.mealsync.util.CutoffCalculator;
 import com.example.mealsync.util.CutoffResult;
@@ -76,7 +74,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class MainActivity extends AppCompatActivity
-        implements MemberAdapter.OnRemoveMemberClickListener, MemberAdapter.OnIncludeInFixedToggleListener {
+        implements MemberAdapter.OnRemoveMemberClickListener {
 
     private ActivityMainBinding binding;
     private final AuthRepository authRepository = new AuthRepository();
@@ -96,7 +94,6 @@ public class MainActivity extends AppCompatActivity
     private MealHistoryAdapter mealHistoryAdapter;
     private ExpenseAdapter expenseAdapter;
     private DepositAdapter depositAdapter;
-    private MemberSummaryAdapter memberSummaryAdapter;
     private ArchiveAdapter archiveAdapter;
 
     private ListenerRegistration messListener;
@@ -144,6 +141,7 @@ public class MainActivity extends AppCompatActivity
         setContentView(binding.getRoot());
 
         applyWindowInsets();
+        binding.header.setBackgroundResource(R.drawable.bg_gradient_member);
         setupNavigation();
         setupListeners();
         setupFinanceSubTabs();
@@ -195,6 +193,7 @@ public class MainActivity extends AppCompatActivity
 
     private void showTab(int tabId) {
         binding.tabHome.setVisibility(tabId == R.id.tabHome ? View.VISIBLE : View.GONE);
+        binding.header.setVisibility(tabId == R.id.tabHome ? View.VISIBLE : View.GONE);
         binding.tabMeals.setVisibility(tabId == R.id.tabMeals ? View.VISIBLE : View.GONE);
         binding.tabMoney.setVisibility(tabId == R.id.tabMoney ? View.VISIBLE : View.GONE);
         binding.tabMembers.setVisibility(tabId == R.id.tabMembers ? View.VISIBLE : View.GONE);
@@ -226,8 +225,6 @@ public class MainActivity extends AppCompatActivity
                 startActivity(intent);
             }
         });
-
-        binding.btnMemberAdjustment.setOnClickListener(v -> showMemberAdjustmentDialog());
 
         binding.btnCloseMonth.setOnClickListener(v -> openCloseMonthActivity());
 
@@ -352,10 +349,6 @@ public class MainActivity extends AppCompatActivity
         binding.rvDeposits.setLayoutManager(new LinearLayoutManager(this));
         binding.rvDeposits.setAdapter(depositAdapter);
 
-        memberSummaryAdapter = new MemberSummaryAdapter();
-        binding.rvMemberSummaries.setLayoutManager(new LinearLayoutManager(this));
-        binding.rvMemberSummaries.setAdapter(memberSummaryAdapter);
-
         archiveAdapter = new ArchiveAdapter(isManager, new ArchiveAdapter.OnArchiveClickListener() {
             @Override
             public void onArchiveClick(Period p) {
@@ -398,7 +391,6 @@ public class MainActivity extends AppCompatActivity
 
         binding.fabAddExpense.setVisibility(isManager ? View.VISIBLE : View.GONE);
         binding.fabAddDeposit.setVisibility(View.VISIBLE);
-        binding.layoutManagerSummary.setVisibility(isManager ? View.VISIBLE : View.GONE);
     }
 
     private void observeMessData(String messId) {
@@ -437,7 +429,7 @@ public class MainActivity extends AppCompatActivity
         boolean isManager = checkIsManager();
         String currentUid = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
 
-        memberAdapter = new MemberAdapter(isManager, currentUid, this, this);
+        memberAdapter = new MemberAdapter(isManager, currentUid, this);
         binding.rvMembers.setLayoutManager(new LinearLayoutManager(this));
         binding.rvMembers.setAdapter(memberAdapter);
 
@@ -728,11 +720,6 @@ public class MainActivity extends AppCompatActivity
             }
         }
 
-        // Update Manager Summary Breakdown
-        if (memberSummaryAdapter != null) {
-            List<MemberFinanceResult> allRes = new ArrayList<>(result.getMemberResults().values());
-            memberSummaryAdapter.setResults(allRes, memberNamesMap);
-        }
     }
 
     private void showFinanceLoadError(Exception error) {
@@ -844,83 +831,6 @@ public class MainActivity extends AppCompatActivity
                         public void onFailure(Exception error) {
                             String msg = error != null && error.getLocalizedMessage() != null
                                     ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to reverse");
-                            Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
-                        }
-                    });
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void showMemberAdjustmentDialog() {
-        if (currentMess == null || currentMess.getCurrentPeriodId() == null || activeMemberList.isEmpty()) return;
-
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        int pad = Math.round(20 * getResources().getDisplayMetrics().density);
-        container.setPadding(pad, pad / 2, pad, pad / 2);
-
-        Spinner spinnerMembers = new Spinner(this);
-        List<String> names = new ArrayList<>();
-        for (Member m : activeMemberList) {
-            names.add(m.getName() != null ? m.getName() : "Member");
-        }
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, names);
-        spinnerMembers.setAdapter(adapter);
-
-        EditText etAmount = new EditText(this);
-        etAmount.setHint(R.string.adjustment_amount_dialog_hint);
-        etAmount.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-
-        EditText etReason = new EditText(this);
-        etReason.setHint(R.string.reason_adjustment_hint);
-        etReason.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-
-        container.addView(spinnerMembers);
-        container.addView(etAmount);
-        container.addView(etReason);
-
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.member_adjustment_title)
-                .setView(container)
-                .setPositiveButton(R.string.save_adjustment_btn, (dialog, which) -> {
-                    int sel = spinnerMembers.getSelectedItemPosition();
-                    if (sel < 0 || sel >= activeMemberList.size()) return;
-
-                    Member target = activeMemberList.get(sel);
-                    String amtStr = etAmount.getText().toString().trim();
-                    String reason = etReason.getText().toString().trim();
-
-                    if (amtStr.isEmpty() || reason.isEmpty()) return;
-
-                    boolean negative = amtStr.startsWith("-");
-                    String absAmtStr = negative ? amtStr.substring(1) : amtStr;
-
-                    long absPaisa;
-                    try {
-                        absPaisa = MoneyUtils.parseTakaToPaisa(absAmtStr);
-                    } catch (Exception e) {
-                        Snackbar.make(binding.mainRoot, R.string.invalid_amount, Snackbar.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    long signedPaisa = negative ? -absPaisa : absPaisa;
-                    String adjId = UUID.randomUUID().toString();
-                    String periodId = currentMess.getCurrentPeriodId();
-                    String createdBy = authRepository.getCurrentUser() != null ? authRepository.getCurrentUser().getUid() : "";
-
-                    Adjustment adj = Adjustment.createMemberAdjustment(adjId, target.getUid(), signedPaisa, reason, periodId, createdBy);
-
-                    adjustmentRepository.addAdjustment(currentMess.getMessId(), adj, new AdjustmentRepository.ActionCallback() {
-                        @Override
-                        public void onSuccess() {
-                            Snackbar.make(binding.mainRoot, R.string.adjustment_saved, Snackbar.LENGTH_SHORT).show();
-                        }
-
-                        @Override
-                        public void onFailure(Exception error) {
-                            String msg = error != null && error.getLocalizedMessage() != null
-                                    ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to save adjustment");
                             Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
                         }
                     });
@@ -1239,23 +1149,7 @@ public class MainActivity extends AppCompatActivity
                 .show();
     }
 
-    @Override
-    public void onIncludeInFixedToggled(Member member, boolean includeInFixed) {
-        if (currentMess == null || member == null) return;
-        messRepository.updateIncludeInFixed(currentMess.getMessId(), member.getUid(), includeInFixed, new MessRepository.ActionCallback() {
-            @Override
-            public void onSuccess() {
-                Snackbar.make(binding.mainRoot, R.string.fixed_share_updated, Snackbar.LENGTH_SHORT).show();
-            }
 
-            @Override
-            public void onFailure(Exception error) {
-                String msg = error != null && error.getLocalizedMessage() != null
-                        ? error.getLocalizedMessage() : getString(R.string.err_generic, "Failed to update setting");
-                Snackbar.make(binding.mainRoot, msg, Snackbar.LENGTH_LONG).show();
-            }
-        });
-    }
 
     private void openChooseScreen() {
         Intent intent = new Intent(this, ChooseActivity.class);

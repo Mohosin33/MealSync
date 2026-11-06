@@ -64,15 +64,6 @@
                 tools:text="john@example.com" />
         </LinearLayout>
 
-        <CheckBox
-            android:id="@+id/cbIncludeInFixed"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="@string/label_fixed"
-            android:textColor="@color/ms_text_secondary"
-            android:textSize="12sp" />
-
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRemoveMember"
             style="@style/Widget.Material3.Button.TextButton"

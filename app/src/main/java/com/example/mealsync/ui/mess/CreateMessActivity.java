@@ -20,6 +20,7 @@ import com.example.mealsync.data.models.Mess;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityCreateMessBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.google.android.material.snackbar.Snackbar;
 
 public class CreateMessActivity extends AppCompatActivity {
@@ -38,6 +39,7 @@ public class CreateMessActivity extends AppCompatActivity {
                 .setAppearanceLightStatusBars(false);
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_manager);
         setupListeners();
     }
 

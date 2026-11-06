@@ -30,6 +30,7 @@ import com.example.mealsync.data.repository.PeriodRepository;
 import com.example.mealsync.databinding.ActivityCloseMonthBinding;
 import com.example.mealsync.finance.FinanceResult;
 import com.example.mealsync.finance.MemberFinanceResult;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.util.MoneyUtils;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -90,6 +91,7 @@ public class CloseMonthActivity extends AppCompatActivity {
         closeRequestId = UUID.randomUUID().toString(); // Persistent for form session
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_manager);
         setupListeners();
         loadData();
     }

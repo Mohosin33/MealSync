@@ -3,7 +3,6 @@ package com.example.mealsync.ui.mess;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -22,27 +21,16 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
         void onRemoveMember(Member member);
     }
 
-    public interface OnIncludeInFixedToggleListener {
-        void onIncludeInFixedToggled(Member member, boolean includeInFixed);
-    }
-
     private final List<Member> members = new ArrayList<>();
     private final boolean isManager;
     private final String currentUserId;
     private final OnRemoveMemberClickListener removeClickListener;
-    private final OnIncludeInFixedToggleListener toggleListener;
 
     public MemberAdapter(boolean isManager, String currentUserId,
-                         OnRemoveMemberClickListener removeClickListener,
-                         OnIncludeInFixedToggleListener toggleListener) {
+                         OnRemoveMemberClickListener removeClickListener) {
         this.isManager = isManager;
         this.currentUserId = currentUserId;
         this.removeClickListener = removeClickListener;
-        this.toggleListener = toggleListener;
-    }
-
-    public MemberAdapter(boolean isManager, String currentUserId, OnRemoveMemberClickListener removeClickListener) {
-        this(isManager, currentUserId, removeClickListener, null);
     }
 
     public void setMembers(List<Member> newMembers) {
@@ -63,7 +51,7 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
     @Override
     public void onBindViewHolder(@NonNull MemberViewHolder holder, int position) {
         Member member = members.get(position);
-        holder.bind(member, isManager, currentUserId, removeClickListener, toggleListener);
+        holder.bind(member, isManager, currentUserId, removeClickListener);
     }
 
     @Override
@@ -75,7 +63,6 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
         private final TextView tvName;
         private final TextView tvEmail;
         private final TextView tvRoleBadge;
-        private final CheckBox cbFixed;
         private final MaterialButton btnRemove;
 
         public MemberViewHolder(@NonNull View itemView) {
@@ -83,30 +70,16 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.MemberView
             tvName = itemView.findViewById(R.id.tvMemberName);
             tvEmail = itemView.findViewById(R.id.tvMemberEmail);
             tvRoleBadge = itemView.findViewById(R.id.tvRoleBadge);
-            cbFixed = itemView.findViewById(R.id.cbIncludeInFixed);
             btnRemove = itemView.findViewById(R.id.btnRemoveMember);
         }
 
         public void bind(Member member, boolean isManager, String currentUserId,
-                         OnRemoveMemberClickListener removeListener,
-                         OnIncludeInFixedToggleListener toggleListener) {
+                         OnRemoveMemberClickListener removeListener) {
             tvName.setText(member.getName() != null && !member.getName().isEmpty() ? member.getName() : "Member");
             tvEmail.setText(member.getEmail() != null ? member.getEmail() : "");
 
             boolean managerRole = "manager".equalsIgnoreCase(member.getRole());
             tvRoleBadge.setText(managerRole ? "MANAGER" : "MEMBER");
-
-            cbFixed.setEnabled(isManager);
-            cbFixed.setOnCheckedChangeListener(null);
-            cbFixed.setChecked(member.isIncludeInFixed());
-
-            if (isManager) {
-                cbFixed.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                    if (toggleListener != null) {
-                        toggleListener.onIncludeInFixedToggled(member, isChecked);
-                    }
-                });
-            }
 
             boolean canRemove = isManager && member.getUid() != null && !member.getUid().equals(currentUserId);
             btnRemove.setVisibility(canRemove ? View.VISIBLE : View.GONE);

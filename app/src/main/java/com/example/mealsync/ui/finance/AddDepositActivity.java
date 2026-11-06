@@ -19,6 +19,7 @@ import com.example.mealsync.data.repository.DepositRepository;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityAddDepositBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.util.MoneyUtils;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
@@ -66,6 +67,7 @@ public class AddDepositActivity extends AppCompatActivity {
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid() : null;
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_manager);
         setupDropdowns();
         setupListeners();
         loadMessAndMembers();

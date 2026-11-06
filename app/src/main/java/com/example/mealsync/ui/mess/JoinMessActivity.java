@@ -22,6 +22,7 @@ import com.example.mealsync.R;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityJoinMessBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.util.InvitationCodeValidator;
 
 public class JoinMessActivity extends AppCompatActivity {
@@ -46,6 +47,7 @@ public class JoinMessActivity extends AppCompatActivity {
                 binding.otp4, binding.otp5, binding.otp6};
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_member);
         setupListeners();
         updateOtpBoxes();
     }

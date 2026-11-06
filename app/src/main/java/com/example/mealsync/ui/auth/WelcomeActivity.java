@@ -35,6 +35,7 @@ import com.example.mealsync.data.models.UserProfile;
 import com.example.mealsync.data.repository.AuthRepository;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityWelcomeBinding;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.ui.mess.ChooseActivity;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
@@ -79,6 +80,7 @@ public class WelcomeActivity extends AppCompatActivity {
         }
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_member);
         setupRoleToggle();
         setupButtons();
         applyRole(managerSelected, false);
@@ -139,6 +141,8 @@ public class WelcomeActivity extends AppCompatActivity {
     private void applyRole(boolean manager, boolean animate) {
         binding.roleMember.setSelected(!manager);
         binding.roleManager.setSelected(manager);
+        binding.header.setBackgroundResource(manager
+                ? R.drawable.bg_gradient_manager : R.drawable.bg_gradient_member);
         int toAccent = ContextCompat.getColor(this,
                 manager ? R.color.ms_manager_end : R.color.ms_teal);
         updateTexts(manager, animate);

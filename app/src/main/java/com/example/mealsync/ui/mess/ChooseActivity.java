@@ -16,6 +16,7 @@ import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityChooseBinding;
 import com.example.mealsync.ui.auth.AuthExtras;
 import com.example.mealsync.ui.auth.WelcomeActivity;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.google.firebase.auth.FirebaseUser;
 
 public class ChooseActivity extends AppCompatActivity {
@@ -33,6 +34,7 @@ public class ChooseActivity extends AppCompatActivity {
                 .setAppearanceLightStatusBars(false);
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, com.example.mealsync.R.drawable.bg_gradient_member);
         setupListeners();
         applyRoleVisibility();
     }

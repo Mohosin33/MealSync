@@ -15,6 +15,7 @@ import com.example.mealsync.data.models.Mess;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivitySettingsBinding;
 import com.example.mealsync.ui.common.SimpleTextWatcher;
+import com.example.mealsync.ui.common.StickyHeaderBehavior;
 import com.example.mealsync.util.MoneyUtils;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.timepicker.MaterialTimePicker;
@@ -44,6 +45,7 @@ public class SettingsActivity extends AppCompatActivity {
         messId = getIntent().getStringExtra(EXTRA_MESS_ID);
 
         applyWindowInsets();
+        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_manager);
         setupListeners();
         loadMessData();
     }
