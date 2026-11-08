@@ -10,10 +10,15 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldPath;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Query;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.WriteBatch;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -23,6 +28,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class MessRepository {
 
@@ -67,6 +73,7 @@ public class MessRepository {
     }
 
     private static final long SEVEN_DAYS_MS = 7L * 24 * 60 * 60 * 1000;
+    private static final int DELETE_BATCH_SIZE = 400;
 
     private final FirebaseFirestore db;
     private final FirebaseAuth auth;
@@ -181,6 +188,141 @@ public class MessRepository {
                 });
     }
 
+    public void deleteMess(String messId, ActionCallback callback) {
+        FirebaseUser currentUser = auth.getCurrentUser();
+        if (currentUser == null) {
+            callback.onFailure(new Exception("User not signed in"));
+            return;
+        }
+
+        String managerUid = currentUser.getUid();
+        DocumentReference messRef = db.collection("messes").document(messId);
+        Task<Void> deletion = messRef.get().continueWithTask(task -> {
+            if (!task.isSuccessful()) {
+                return Tasks.forException(task.getException());
+            }
+            DocumentSnapshot snapshot = task.getResult();
+            if (snapshot == null || !snapshot.exists()) {
+                return Tasks.forException(new IllegalStateException("Mess no longer exists."));
+            }
+            if (!managerUid.equals(snapshot.getString("managerUid"))) {
+                return Tasks.forException(new SecurityException("Only the mess manager can delete this mess."));
+            }
+            if (Boolean.TRUE.equals(snapshot.getBoolean("deleting"))) {
+                return Tasks.forResult(null);
+            }
+            return messRef.update("deleting", true);
+        });
+
+        deletion = continueIfSuccessful(deletion, ignored ->
+                deleteCollection(db.collection("invitationCodes").whereEqualTo("messId", messId)));
+        deletion = continueIfSuccessful(deletion, ignored ->
+                resetMemberProfiles(db.collection("users").whereEqualTo("messId", messId)
+                        .orderBy(FieldPath.documentId()).limit(DELETE_BATCH_SIZE), null, managerUid));
+        deletion = continueIfSuccessful(deletion, ignored -> deleteCollection(messRef.collection("adjustments")));
+        deletion = continueIfSuccessful(deletion, ignored -> deleteCollection(messRef.collection("expenses")));
+        deletion = continueIfSuccessful(deletion, ignored -> deleteCollection(messRef.collection("deposits")));
+        deletion = continueIfSuccessful(deletion, ignored -> deleteCollection(messRef.collection("meals")));
+        deletion = continueIfSuccessful(deletion, ignored -> deletePeriodData(messRef));
+        deletion = continueIfSuccessful(deletion, ignored ->
+                deleteCollection(messRef.collection("members").whereNotEqualTo(FieldPath.documentId(), managerUid)));
+        deletion = continueIfSuccessful(deletion, ignored -> {
+            WriteBatch batch = db.batch();
+            Map<String, Object> userReset = new HashMap<>();
+            userReset.put("messId", null);
+            userReset.put("role", null);
+            batch.update(db.collection("users").document(managerUid), userReset);
+            batch.delete(messRef.collection("members").document(managerUid));
+            batch.delete(messRef);
+            return batch.commit();
+        });
+
+        deletion.addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                callback.onSuccess();
+            } else {
+                callback.onFailure(task.getException());
+            }
+        });
+    }
+
+    private Task<Void> deletePeriodData(DocumentReference messRef) {
+        return messRef.collection("periods").get().continueWithTask(task -> {
+            if (!task.isSuccessful()) {
+                return Tasks.forException(task.getException());
+            }
+            Task<Void> deletion = Tasks.forResult(null);
+            for (DocumentSnapshot period : task.getResult().getDocuments()) {
+                DocumentReference periodRef = period.getReference();
+                deletion = continueIfSuccessful(deletion, ignored ->
+                        deleteCollection(periodRef.collection("results")));
+            }
+            return continueIfSuccessful(deletion, ignored -> deleteCollection(messRef.collection("periods")));
+        });
+    }
+
+    private Task<Void> resetMemberProfiles(Query pageQuery, DocumentSnapshot lastDocument, String managerUid) {
+        Query query = pageQuery;
+        if (lastDocument != null) {
+            query = query.startAfter(lastDocument);
+        }
+        return query.get().continueWithTask(task -> {
+            if (!task.isSuccessful()) {
+                return Tasks.forException(task.getException());
+            }
+
+            QuerySnapshot snapshot = task.getResult();
+            WriteBatch batch = db.batch();
+            int updates = 0;
+            for (DocumentSnapshot member : snapshot.getDocuments()) {
+                if (!managerUid.equals(member.getId())) {
+                    Map<String, Object> userReset = new HashMap<>();
+                    userReset.put("messId", null);
+                    userReset.put("role", null);
+                    batch.update(db.collection("users").document(member.getId()), userReset);
+                    updates++;
+                }
+            }
+
+            Task<Void> updateTask = updates == 0 ? Tasks.forResult(null) : batch.commit();
+            return continueIfSuccessful(updateTask, ignored -> {
+                if (snapshot.size() < DELETE_BATCH_SIZE) {
+                    return Tasks.forResult(null);
+                }
+                return resetMemberProfiles(pageQuery, snapshot.getDocuments().get(snapshot.size() - 1), managerUid);
+            });
+        });
+    }
+
+    private Task<Void> deleteCollection(Query query) {
+        return query.orderBy(FieldPath.documentId()).limit(DELETE_BATCH_SIZE).get()
+                .continueWithTask(task -> {
+                    if (!task.isSuccessful()) {
+                        return Tasks.forException(task.getException());
+                    }
+
+                    List<DocumentSnapshot> documents = task.getResult().getDocuments();
+                    if (documents.isEmpty()) {
+                        return Tasks.forResult(null);
+                    }
+
+                    WriteBatch batch = db.batch();
+                    for (DocumentSnapshot document : documents) {
+                        batch.delete(document.getReference());
+                    }
+                    return continueIfSuccessful(batch.commit(), ignored -> deleteCollection(query));
+                });
+    }
+
+    private <T> Task<Void> continueIfSuccessful(Task<T> task, Function<T, Task<Void>> next) {
+        return task.continueWithTask(result -> {
+            if (!result.isSuccessful()) {
+                return Tasks.forException(result.getException());
+            }
+            return next.apply(result.getResult());
+        });
+    }
+
     public void ensureMessSetup(Mess mess, ActionCallback callback) {
         if (mess == null || mess.getMessId() == null) {
             return;
@@ -291,9 +433,8 @@ public class MessRepository {
                 listener.onError(error);
                 return;
             }
-            if (snapshot != null && snapshot.exists()) {
-                Mess mess = snapshot.toObject(Mess.class);
-                listener.onMessUpdated(mess);
+            if (snapshot != null) {
+                listener.onMessUpdated(snapshot.exists() ? snapshot.toObject(Mess.class) : null);
             }
         });
     }

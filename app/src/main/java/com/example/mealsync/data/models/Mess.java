@@ -17,6 +17,7 @@ public class Mess {
     private int guestWeightPercent = 100;
     private String fixedSplitMode = "equal";
     private long createdAt;
+    private boolean deleting;
 
     public Mess() {
     }
@@ -150,5 +151,13 @@ public class Mess {
 
     public void setCreatedAt(long createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isDeleting() {
+        return deleting;
+    }
+
+    public void setDeleting(boolean deleting) {
+        this.deleting = deleting;
     }
 }

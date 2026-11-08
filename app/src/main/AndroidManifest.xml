@@ -4,6 +4,9 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
 
     <application
         android:name=".MealSyncApplication"
@@ -27,7 +30,8 @@
 
         <activity
             android:name=".ui.auth.WelcomeActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name=".ui.auth.LoginActivity"
@@ -59,6 +63,11 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.contacts.ContactPickerActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".ui.finance.AddExpenseActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
@@ -81,6 +90,20 @@
         <activity
             android:name=".MainActivity"
             android:exported="false" />
+
+        <receiver
+            android:name=".notification.MealReminderReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".notification.MealReminderBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

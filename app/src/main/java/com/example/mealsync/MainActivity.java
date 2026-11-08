@@ -1,20 +1,41 @@
 package com.example.mealsync;
 
+import android.Manifest;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ActivityNotFoundException;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.InputType;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -39,10 +60,17 @@ import com.example.mealsync.data.repository.FinanceRepository;
 import com.example.mealsync.data.repository.MealRepository;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.data.repository.PeriodRepository;
+import com.example.mealsync.data.repository.ProfileRepository;
+import com.example.mealsync.data.repository.TimeCheckRepository;
 import com.example.mealsync.databinding.ActivityMainBinding;
 import com.example.mealsync.finance.FinanceResult;
 import com.example.mealsync.finance.MemberFinanceResult;
+import com.example.mealsync.notification.MealReminderScheduler;
+import com.example.mealsync.notification.SystemStateReceiver;
+import com.example.mealsync.sync.SyncWorker;
+import com.example.mealsync.ui.auth.AuthExtras;
 import com.example.mealsync.ui.auth.WelcomeActivity;
+import com.example.mealsync.ui.contacts.ContactPickerActivity;
 import com.example.mealsync.ui.finance.AddDepositActivity;
 import com.example.mealsync.ui.finance.AddExpenseActivity;
 import com.example.mealsync.ui.finance.ArchiveAdapter;
@@ -54,24 +82,49 @@ import com.example.mealsync.ui.mess.ChooseActivity;
 import com.example.mealsync.ui.mess.MealHistoryAdapter;
 import com.example.mealsync.ui.mess.MemberAdapter;
 import com.example.mealsync.ui.mess.SettingsActivity;
+import com.example.mealsync.util.ClockCheckLogic;
 import com.example.mealsync.util.CutoffCalculator;
 import com.example.mealsync.util.CutoffResult;
 import com.example.mealsync.util.MoneyUtils;
+import com.example.mealsync.util.SystemBannerState;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.signature.ObjectKey;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseException;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.Source;
 
 import java.time.Instant;
+import java.text.DateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity
         implements MemberAdapter.OnRemoveMemberClickListener {
@@ -85,6 +138,8 @@ public class MainActivity extends AppCompatActivity
     private final DepositRepository depositRepository = new DepositRepository();
     private final AdjustmentRepository adjustmentRepository = new AdjustmentRepository();
     private final FinanceRepository financeRepository = new FinanceRepository();
+    private final TimeCheckRepository timeCheckRepository = new TimeCheckRepository();
+    private final ProfileRepository profileRepository = new ProfileRepository();
 
     private UserProfile currentProfile;
     private Mess currentMess;
@@ -108,12 +163,85 @@ public class MainActivity extends AppCompatActivity
     private ListenerRegistration periodMealsListener;
     private ListenerRegistration archiveListener;
 
+    private DatabaseReference connectedReference;
+    private DatabaseReference ownPresenceReference;
+    private DatabaseReference memberPresenceReference;
+    private ValueEventListener connectionListener;
+    private ValueEventListener memberPresenceListener;
+    private String presenceMessId;
+    private String presenceUid;
+    private boolean presenceStarted;
+    private boolean realtimeConnected;
+
     private CutoffResult currentCutoffResult;
     private Meal tomorrowMeal;
     private boolean isUpdatingControls = false;
     private boolean isSavingMeal = false;
+    private boolean isDeletingMess = false;
+    private boolean airplaneModeOn = false;
+    private boolean offline = false;
+    private boolean systemStateReceiverRegistered = false;
+    private boolean connectivityCallbackRegistered = false;
+    private Uri pendingProfilePhotoUri;
+    private ShapeableImageView editProfilePhotoPreview;
+    private AlertDialog editProfileDialog;
+    private final ExecutorService profilePhotoExecutor = Executors.newSingleThreadExecutor();
+
+    private interface ProfilePhotoSaveCallback {
+        void onSuccess();
+        void onFailure(Exception error);
+    }
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable timerRunnable = this::updateCutoffTimer;
+    private final SystemStateReceiver systemStateReceiver =
+            new SystemStateReceiver(enabled -> {
+                boolean wasAirplaneModeOn = airplaneModeOn;
+                airplaneModeOn = enabled;
+                updateSystemBanners();
+                if (wasAirplaneModeOn && !enabled) {
+                    SyncWorker.enqueue(MainActivity.this);
+                }
+            });
+    private final ConnectivityManager.NetworkCallback connectivityCallback =
+            new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onAvailable(Network network) {
+                    runOnUiThread(MainActivity.this::updateInternetState);
+                }
+
+                @Override
+                public void onLost(Network network) {
+                    runOnUiThread(MainActivity.this::updateInternetState);
+                }
+
+                @Override
+                public void onCapabilitiesChanged(Network network, NetworkCapabilities capabilities) {
+                    runOnUiThread(MainActivity.this::updateInternetState);
+                }
+            };
+    private final ActivityResultLauncher<String> notificationPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (granted && currentMess != null) {
+                    scheduleMealReminder(currentMess);
+                }
+            });
+    private final ActivityResultLauncher<String> contactsPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (granted) {
+                    openContactPickerWithCurrentCode();
+                } else {
+                    showContactsPermissionDenied();
+                }
+            });
+    private final ActivityResultLauncher<String> profilePhotoPicker =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                if (uri != null) {
+                    pendingProfilePhotoUri = uri;
+                    if (editProfilePhotoPreview != null) {
+                        loadProfilePhoto(editProfilePhotoPreview, uri);
+                    }
+                }
+            });
 
     private final Map<String, String> memberNamesMap = new HashMap<>();
     private final List<Member> activeMemberList = new ArrayList<>();
@@ -158,6 +286,77 @@ public class MainActivity extends AppCompatActivity
                 darkMode ? R.string.switch_to_light_mode : R.string.switch_to_dark_mode));
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (binding == null) {
+            return;
+        }
+
+        startPresence();
+        startMemberPresenceListener();
+
+        airplaneModeOn = Settings.Global.getInt(getContentResolver(),
+                Settings.Global.AIRPLANE_MODE_ON, 0) != 0;
+        IntentFilter airplaneModeFilter = new IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        ContextCompat.registerReceiver(this, systemStateReceiver, airplaneModeFilter,
+                ContextCompat.RECEIVER_EXPORTED);
+        systemStateReceiverRegistered = true;
+
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (connectivityManager != null) {
+            connectivityManager.registerDefaultNetworkCallback(connectivityCallback);
+            connectivityCallbackRegistered = true;
+        }
+        updateInternetState();
+        updateSystemBanners();
+    }
+
+    @Override
+    protected void onStop() {
+        stopPresence();
+        if (systemStateReceiverRegistered) {
+            unregisterReceiver(systemStateReceiver);
+            systemStateReceiverRegistered = false;
+        }
+        if (connectivityCallbackRegistered) {
+            ConnectivityManager connectivityManager =
+                    (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (connectivityManager != null) {
+                connectivityManager.unregisterNetworkCallback(connectivityCallback);
+            }
+            connectivityCallbackRegistered = false;
+        }
+        super.onStop();
+    }
+
+    private void updateInternetState() {
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network activeNetwork = connectivityManager != null
+                ? connectivityManager.getActiveNetwork() : null;
+        NetworkCapabilities capabilities = connectivityManager != null && activeNetwork != null
+                ? connectivityManager.getNetworkCapabilities(activeNetwork) : null;
+        offline = capabilities == null
+                || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                || !capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        updateSystemBanners();
+    }
+
+    private void updateSystemBanners() {
+        if (binding == null) {
+            return;
+        }
+        List<SystemBannerState.Banner> visibleBanners =
+                SystemBannerState.visibleBanners(offline, airplaneModeOn);
+        binding.cardOfflineBanner.setVisibility(visibleBanners.contains(SystemBannerState.Banner.OFFLINE)
+                ? View.VISIBLE : View.GONE);
+        binding.cardAirplaneModeBanner.setVisibility(
+                visibleBanners.contains(SystemBannerState.Banner.AIRPLANE_MODE)
+                        ? View.VISIBLE : View.GONE);
+    }
+
     private void applyWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.mainRoot, (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
@@ -169,6 +368,12 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void setupNavigation() {
+        binding.bottomNav.setItemIconTintList(null);
+        tintNavigationIcon(R.id.nav_home);
+        tintNavigationIcon(R.id.nav_meals);
+        tintNavigationIcon(R.id.nav_money);
+        tintNavigationIcon(R.id.nav_members);
+        binding.bottomNav.getMenu().findItem(R.id.nav_profile).setIconTintList(null);
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.nav_home) {
@@ -185,10 +390,18 @@ public class MainActivity extends AppCompatActivity
                 return true;
             } else if (itemId == R.id.nav_profile) {
                 showTab(R.id.tabProfile);
+                checkTrustedTime();
                 return true;
             }
             return false;
         });
+    }
+
+    private void tintNavigationIcon(int itemId) {
+        android.view.MenuItem item = binding.bottomNav.getMenu().findItem(itemId);
+        Drawable icon = DrawableCompat.wrap(item.getIcon()).mutate();
+        DrawableCompat.setTintList(icon, ContextCompat.getColorStateList(this, R.color.nav_item_tint));
+        item.setIcon(icon);
     }
 
     private void showTab(int tabId) {
@@ -270,7 +483,10 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void setupListeners() {
+        binding.btnEditProfile.setOnClickListener(v -> showEditProfileDialog());
         binding.btnLogout.setOnClickListener(v -> {
+            MealReminderScheduler.cancel(this);
+            stopPresence();
             authRepository.signOut();
             openWelcome();
         });
@@ -282,9 +498,11 @@ public class MainActivity extends AppCompatActivity
                 startActivity(intent);
             }
         });
+        binding.btnDeleteMess.setOnClickListener(v -> confirmDeleteMess());
 
         binding.btnCopyCode.setOnClickListener(v -> copyInvitationCode());
         binding.btnShareCode.setOnClickListener(v -> shareInvitationCode());
+        binding.btnInviteFromContacts.setOnClickListener(v -> explainContactAccess());
         binding.btnRevokeCode.setOnClickListener(v -> revokeInvitationCode());
         binding.btnRegenerateCode.setOnClickListener(v -> regenerateInvitationCode());
 
@@ -400,10 +618,23 @@ public class MainActivity extends AppCompatActivity
         messListener = messRepository.observeMess(messId, new MessRepository.MessListener() {
             @Override
             public void onMessUpdated(Mess mess) {
+                if (mess == null) {
+                    currentMess = null;
+                    MealReminderScheduler.cancel(MainActivity.this);
+                    openChooseScreen();
+                    return;
+                }
                 currentMess = mess;
+                setPresenceMessId(mess.getMessId());
+                if (mess.isDeleting()) {
+                    MealReminderScheduler.cancel(MainActivity.this);
+                } else {
+                    scheduleMealReminder(mess);
+                    requestNotificationPermissionIfNeeded();
+                }
                 boolean isManager = checkIsManager();
 
-                if (mess != null && isManager) {
+                if (isManager && !mess.isDeleting()) {
                     if (mess.getUtcOffsetMinutes() == 0) {
                         messRepository.ensureMessSetup(mess, null);
                     }
@@ -415,13 +646,17 @@ public class MainActivity extends AppCompatActivity
                 populateMessUI(mess);
                 updateMealDashboard();
                 updatePeriodStatusUI(currentPeriod);
-                if (mess != null && mess.getCurrentPeriodId() != null) {
+                if (mess.getCurrentPeriodId() != null) {
                     loadPeriodAndFinance(mess);
                 }
             }
 
             @Override
             public void onError(Exception error) {
+                if (currentMess != null && currentMess.isDeleting()) {
+                    openChooseScreen();
+                    return;
+                }
                 showFinanceLoadError(error);
             }
         });
@@ -929,18 +1164,29 @@ public class MainActivity extends AppCompatActivity
             binding.cardSetupNotice.setVisibility(View.GONE);
         }
 
-        if (myMealListener != null) myMealListener.remove();
-        myMealListener = mealRepository.observeMyMeal(currentMess.getMessId(), currentCutoffResult.getTomorrowDate(), new MealRepository.MealListener() {
-            @Override
-            public void onMealUpdated(Meal meal) {
-                tomorrowMeal = meal;
-                renderTomorrowMeal(meal);
-            }
+        if (currentMess.isDeleting()) {
+            handler.removeCallbacks(timerRunnable);
+            binding.tvCutoffStatus.setText(R.string.deleting_mess);
+            setControlsEnabled(false);
+            return;
+        }
 
-            @Override
-            public void onError(Exception error) {
-            }
-        });
+        if (myMealListener != null) myMealListener.remove();
+        myMealListener = mealRepository.observeMyMeal(
+                currentMess.getMessId(),
+                currentCutoffResult.getTomorrowDate(),
+                new MealRepository.MealListener() {
+                    @Override
+                    public void onMealUpdated(Meal meal) {
+                        tomorrowMeal = meal;
+                        renderTomorrowMeal(meal);
+                    }
+
+                    @Override
+                    public void onError(Exception error) {
+                        Snackbar.make(binding.mainRoot, R.string.meal_load_failed, Snackbar.LENGTH_LONG).show();
+                    }
+                });
 
         if (isManager) {
             observeTomorrowDayTotals(currentMess.getMessId(), currentCutoffResult.getTomorrowDate());
@@ -979,7 +1225,7 @@ public class MainActivity extends AppCompatActivity
         calculateMonthlyCounts(personalMealsList);
 
         boolean open = currentCutoffResult != null && currentCutoffResult.isOpen();
-        setControlsEnabled(open && !isSavingMeal);
+        setControlsEnabled(open && !isSavingMeal && (currentMess == null || !currentMess.isDeleting()));
     }
 
     private void startCutoffTimer() {
@@ -989,10 +1235,26 @@ public class MainActivity extends AppCompatActivity
 
     private void updateCutoffTimer() {
         if (currentMess == null) return;
+        if (currentMess.isDeleting()) {
+            binding.tvCutoffStatus.setText(R.string.deleting_mess);
+            setControlsEnabled(false);
+            return;
+        }
 
+        String previousTomorrowDate = currentCutoffResult != null
+                ? currentCutoffResult.getTomorrowDate()
+                : null;
         currentCutoffResult = CutoffCalculator.calculate(
                 Instant.now(), currentMess.getTimezone(), currentMess.getCutoffTime()
         );
+
+        if (previousTomorrowDate != null
+                && !previousTomorrowDate.equals(currentCutoffResult.getTomorrowDate())) {
+            tomorrowMeal = null;
+            setControlsEnabled(false);
+            updateMealDashboard();
+            return;
+        }
 
         if (currentCutoffResult.isOpen()) {
             long millis = currentCutoffResult.getMillisUntilCutoff();
@@ -1020,21 +1282,28 @@ public class MainActivity extends AppCompatActivity
         isSavingMeal = true;
         setControlsEnabled(false);
 
-        mealRepository.setMeal(currentMess.getMessId(), currentCutoffResult.getTomorrowDate(), newLunch, newDinner, newGuests, new MealRepository.SetMealCallback() {
+        String mealDate = currentCutoffResult.getTomorrowDate();
+        mealRepository.setMeal(currentMess.getMessId(), mealDate, newLunch, newDinner, newGuests, new MealRepository.SetMealCallback() {
             @Override
             public void onSuccess() {
                 isSavingMeal = false;
-                setControlsEnabled(currentCutoffResult != null && currentCutoffResult.isOpen());
+                if (currentCutoffResult != null
+                        && mealDate.equals(currentCutoffResult.getTomorrowDate())) {
+                    setControlsEnabled(currentCutoffResult.isOpen()
+                            && (currentMess == null || !currentMess.isDeleting()));
+                }
             }
 
             @Override
             public void onFailure(Exception error) {
                 isSavingMeal = false;
-                Snackbar.make(binding.mainRoot, R.string.meal_editing_closed, Snackbar.LENGTH_LONG).show();
-                if (tomorrowMeal != null) {
+                Snackbar.make(binding.mainRoot, R.string.meal_save_failed, Snackbar.LENGTH_LONG).show();
+                if (tomorrowMeal != null && mealDate.equals(tomorrowMeal.getDate())) {
                     renderTomorrowMeal(tomorrowMeal);
-                } else {
-                    setControlsEnabled(currentCutoffResult != null && currentCutoffResult.isOpen());
+                } else if (currentCutoffResult != null
+                        && mealDate.equals(currentCutoffResult.getTomorrowDate())) {
+                    setControlsEnabled(currentCutoffResult.isOpen()
+                            && (currentMess == null || !currentMess.isDeleting()));
                 }
             }
         });
@@ -1050,9 +1319,288 @@ public class MainActivity extends AppCompatActivity
     private void populateProfileUI(UserProfile profile) {
         binding.tvProfileName.setText(profile.getDisplayName() != null ? profile.getDisplayName() : "User");
         binding.tvProfileEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
+        loadProfilePhoto(binding.ivProfilePhoto, profile.getUid());
+        updateProfileNavigationIcon(profile.getUid());
         boolean isManager = checkIsManager();
         binding.tvProfileRole.setText(isManager ? R.string.role_badge_manager : R.string.role_badge_member);
         binding.btnSettings.setVisibility(isManager ? View.VISIBLE : View.GONE);
+        binding.btnDeleteMess.setVisibility(isManager ? View.VISIBLE : View.GONE);
+        binding.btnClockCheck.setOnClickListener(v -> checkTrustedTime());
+    }
+
+    private void showEditProfileDialog() {
+        if (currentProfile == null) {
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_profile, null);
+        EditText nameInput = dialogView.findViewById(R.id.etProfileName);
+        TextInputLayout nameLayout = dialogView.findViewById(R.id.tilProfileName);
+        editProfilePhotoPreview = dialogView.findViewById(R.id.ivEditProfilePhoto);
+        nameInput.setText(currentProfile.getDisplayName());
+        pendingProfilePhotoUri = null;
+        loadProfilePhoto(editProfilePhotoPreview, currentProfile.getUid());
+
+        dialogView.findViewById(R.id.btnChooseProfilePhoto).setOnClickListener(v ->
+                profilePhotoPicker.launch("image/*"));
+
+        editProfileDialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.edit_profile_title)
+                .setView(dialogView)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.save_profile, null)
+                .create();
+        editProfileDialog.setOnShowListener(dialog -> {
+            Button saveButton = editProfileDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            saveButton.setOnClickListener(v -> {
+                String displayName = nameInput.getText() != null
+                        ? nameInput.getText().toString().trim() : "";
+                if (displayName.isEmpty()) {
+                    nameLayout.setError(getString(R.string.profile_name_required));
+                    return;
+                }
+
+                nameLayout.setError(null);
+                saveButton.setEnabled(false);
+                saveButton.setText(R.string.profile_saving);
+                String uid = currentProfile.getUid();
+                Runnable updateProfile = () -> profileRepository.updateProfile(uid,
+                        currentProfile.getMessId(), displayName, new ProfileRepository.Callback() {
+                            @Override
+                            public void onSuccess() {
+                                if (isFinishing() || isDestroyed()) return;
+                                currentProfile.setDisplayName(displayName);
+                                populateProfileUI(currentProfile);
+                                Snackbar.make(binding.mainRoot, R.string.profile_saved,
+                                        Snackbar.LENGTH_SHORT).show();
+                                if (editProfileDialog != null && editProfileDialog.isShowing()) {
+                                    editProfileDialog.dismiss();
+                                }
+                            }
+
+                            @Override
+                            public void onFailure(Exception error) {
+                                if (isFinishing() || isDestroyed()) return;
+                                Log.w("MainActivity", "Could not update profile", error);
+                                saveButton.setEnabled(true);
+                                saveButton.setText(R.string.save_profile);
+                                Snackbar.make(binding.mainRoot, R.string.profile_update_failed,
+                                        Snackbar.LENGTH_LONG).show();
+                            }
+                        });
+                if (pendingProfilePhotoUri != null) {
+                    saveProfilePhotoLocally(pendingProfilePhotoUri, uid,
+                            new ProfilePhotoSaveCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    if (!isFinishing() && !isDestroyed()) updateProfile.run();
+                                }
+
+                                @Override
+                                public void onFailure(Exception error) {
+                                    if (isFinishing() || isDestroyed()) return;
+                                    Log.w("MainActivity", "Could not save profile photo on this device", error);
+                                    saveButton.setEnabled(true);
+                                    saveButton.setText(R.string.save_profile);
+                                    Snackbar.make(binding.mainRoot, R.string.profile_photo_save_failed,
+                                            Snackbar.LENGTH_LONG).show();
+                                }
+                            });
+                } else {
+                    updateProfile.run();
+                }
+            });
+        });
+        editProfileDialog.setOnDismissListener(dialog -> {
+            editProfilePhotoPreview = null;
+            pendingProfilePhotoUri = null;
+            editProfileDialog = null;
+        });
+        editProfileDialog.show();
+    }
+
+    private void saveProfilePhotoLocally(Uri photoUri, String uid,
+                                         ProfilePhotoSaveCallback callback) {
+        profilePhotoExecutor.execute(() -> {
+            try {
+                File photoDirectory = new File(getFilesDir(), "profile_photos");
+                if (!photoDirectory.exists() && !photoDirectory.mkdirs()) {
+                    throw new IOException("Could not create profile photo directory.");
+                }
+                File photoFile = new File(photoDirectory, uid + ".jpg");
+                try (InputStream input = getContentResolver().openInputStream(photoUri);
+                     OutputStream output = new FileOutputStream(photoFile)) {
+                    if (input == null) {
+                        throw new IOException("Could not open selected profile photo.");
+                    }
+                    byte[] buffer = new byte[8192];
+                    int count;
+                    while ((count = input.read(buffer)) != -1) {
+                        output.write(buffer, 0, count);
+                    }
+                }
+                runOnUiThread(callback::onSuccess);
+            } catch (IOException error) {
+                runOnUiThread(() -> callback.onFailure(error));
+            }
+        });
+    }
+
+    private void loadProfilePhoto(ImageView imageView, String uid) {
+        File photoFile = new File(new File(getFilesDir(), "profile_photos"), uid + ".jpg");
+        Glide.with(this)
+                .load(photoFile.exists() ? photoFile : null)
+                .signature(new ObjectKey(photoFile.exists() ? photoFile.lastModified() : 0L))
+                .placeholder(R.drawable.ic_nav_profile)
+                .error(R.drawable.ic_nav_profile)
+                .circleCrop()
+                .into(imageView);
+    }
+
+    private void updateProfileNavigationIcon(String uid) {
+        File photoFile = new File(new File(getFilesDir(), "profile_photos"), uid + ".jpg");
+        android.view.MenuItem profileItem = binding.bottomNav.getMenu().findItem(R.id.nav_profile);
+        if (!photoFile.isFile()) {
+            profileItem.setIcon(R.drawable.ic_nav_profile);
+            return;
+        }
+
+        int iconSize = (int) (24 * getResources().getDisplayMetrics().density);
+        Glide.with(this)
+                .asBitmap()
+                .load(photoFile)
+                .signature(new ObjectKey(photoFile.lastModified()))
+                .override(iconSize, iconSize)
+                .circleCrop()
+                .into(new CustomTarget<Bitmap>(iconSize, iconSize) {
+                    @Override
+                    public void onResourceReady(Bitmap resource,
+                                                Transition<? super Bitmap> transition) {
+                        if (!isFinishing() && !isDestroyed() && currentProfile != null
+                                && uid.equals(currentProfile.getUid())) {
+                            profileItem.setIcon(new BitmapDrawable(getResources(), resource));
+                            profileItem.setIconTintList(null);
+                        }
+                    }
+
+                    @Override
+                    public void onLoadCleared(Drawable placeholder) {
+                    }
+                });
+    }
+
+    private void loadProfilePhoto(ImageView imageView, Uri photoUri) {
+        Glide.with(this)
+                .load(photoUri)
+                .placeholder(R.drawable.ic_nav_profile)
+                .error(R.drawable.ic_nav_profile)
+                .circleCrop()
+                .into(imageView);
+    }
+
+    private void checkTrustedTime() {
+        if (binding == null || isFinishing() || isDestroyed()) return;
+
+        binding.btnClockCheck.setEnabled(false);
+        binding.tvClockCheckStatus.setText(R.string.clock_check_loading);
+        binding.tvClockCheckWarning.setVisibility(View.GONE);
+        timeCheckRepository.check(new TimeCheckRepository.Callback() {
+            @Override
+            public void onSuccess(long networkTimeMillis, long phoneTimeMillis, long differenceMillis) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    DateFormat dateFormat = DateFormat.getDateTimeInstance();
+                    binding.tvClockNetworkTime.setText(getString(R.string.clock_check_network_value,
+                            dateFormat.format(new Date(networkTimeMillis))));
+                    binding.tvClockPhoneTime.setText(getString(R.string.clock_check_phone_value,
+                            dateFormat.format(new Date(phoneTimeMillis))));
+                    binding.tvClockDifference.setText(getString(R.string.clock_check_difference_value,
+                            formatClockDifference(differenceMillis)));
+                    boolean clockIsOff = ClockCheckLogic.isClockOffByMoreThanTwoMinutes(
+                            differenceMillis);
+                    binding.tvClockCheckWarning.setVisibility(clockIsOff ? View.VISIBLE : View.GONE);
+                    binding.tvClockCheckStatus.setText(clockIsOff
+                            ? R.string.clock_check_complete_off
+                            : R.string.clock_check_complete);
+                    binding.btnClockCheck.setEnabled(true);
+                });
+            }
+
+            @Override
+            public void onFailure(TimeCheckRepository.Failure failure) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    binding.tvClockCheckStatus.setText(clockCheckFailureMessage(failure));
+                    binding.btnClockCheck.setEnabled(true);
+                });
+            }
+        });
+    }
+
+    private String clockCheckFailureMessage(TimeCheckRepository.Failure failure) {
+        switch (failure) {
+            case OFFLINE:
+                return getString(R.string.clock_check_error_offline);
+            case TIMEOUT:
+                return getString(R.string.clock_check_error_timeout);
+            case HTTP:
+                return getString(R.string.clock_check_error_http);
+            case BAD_JSON:
+                return getString(R.string.clock_check_error_bad_response);
+            case OTHER:
+            default:
+                return getString(R.string.clock_check_error_other);
+        }
+    }
+
+    private String formatClockDifference(long differenceMillis) {
+        long totalSeconds = Math.abs(differenceMillis) / 1000L;
+        long hours = totalSeconds / 3600L;
+        long minutes = (totalSeconds % 3600L) / 60L;
+        long seconds = totalSeconds % 60L;
+        String sign = differenceMillis > 0L ? "+" : differenceMillis < 0L ? "\u2212" : "";
+        return getString(R.string.clock_check_difference_format, sign, hours, minutes, seconds);
+    }
+
+    private void confirmDeleteMess() {
+        if (currentMess == null || !checkIsManager() || isDeletingMess) return;
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.delete_mess_confirm_title)
+                .setMessage(getString(R.string.delete_mess_confirm_message, currentMess.getName()))
+                .setNegativeButton(android.R.string.no, (dialog, which) -> dialog.dismiss())
+                .setPositiveButton(R.string.delete_mess_confirm_yes, (dialog, which) -> deleteMess())
+                .show();
+    }
+
+    private void deleteMess() {
+        if (currentMess == null || isDeletingMess) return;
+
+        isDeletingMess = true;
+        binding.btnDeleteMess.setEnabled(false);
+        binding.btnDeleteMess.setText(R.string.deleting_mess);
+        binding.btnSettings.setEnabled(false);
+        binding.btnLogout.setEnabled(false);
+
+        messRepository.deleteMess(currentMess.getMessId(), new MessRepository.ActionCallback() {
+            @Override
+            public void onSuccess() {
+                openChooseScreen();
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+                isDeletingMess = false;
+                binding.btnDeleteMess.setEnabled(true);
+                binding.btnDeleteMess.setText(R.string.delete_mess);
+                binding.btnSettings.setEnabled(true);
+                binding.btnLogout.setEnabled(true);
+                String message = error != null && error.getLocalizedMessage() != null
+                        ? error.getLocalizedMessage()
+                        : getString(R.string.delete_mess_failed);
+                Snackbar.make(binding.mainRoot, message, Snackbar.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void populateMessUI(Mess mess) {
@@ -1060,12 +1608,15 @@ public class MainActivity extends AppCompatActivity
         binding.tvHomeMessName.setText(mess.getName());
 
         boolean isManager = checkIsManager();
-        binding.layoutManagerCodeActions.setVisibility(isManager ? View.VISIBLE : View.GONE);
+        binding.layoutManagerCodeActions.setVisibility(isManager && !mess.isDeleting() ? View.VISIBLE : View.GONE);
+        binding.btnSettings.setEnabled(!mess.isDeleting());
 
         if (mess.getInvitationCode() != null && !mess.getInvitationCode().isEmpty()) {
             binding.cardInvitationCode.setVisibility(View.VISIBLE);
             binding.tvInvitationCode.setText(mess.getInvitationCode());
+            binding.btnInviteFromContacts.setVisibility(mess.isDeleting() ? View.GONE : View.VISIBLE);
         } else {
+            binding.btnInviteFromContacts.setVisibility(View.GONE);
             binding.tvInvitationCode.setText("------");
         }
     }
@@ -1087,6 +1638,102 @@ public class MainActivity extends AppCompatActivity
         shareIntent.putExtra(Intent.EXTRA_SUBJECT, getString(R.string.share_subject));
         shareIntent.putExtra(Intent.EXTRA_TEXT, getString(R.string.share_text, currentMess.getInvitationCode()));
         startActivity(Intent.createChooser(shareIntent, getString(R.string.share_code)));
+    }
+
+    private void explainContactAccess() {
+        if (currentMess == null
+                || currentMess.getInvitationCode() == null
+                || currentMess.getInvitationCode().trim().isEmpty()) {
+            return;
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.contacts_permission_title)
+                .setMessage(R.string.contacts_permission_explanation)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.continue_action, (dialog, which) -> {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+                            == PackageManager.PERMISSION_GRANTED) {
+                        openContactPickerWithCurrentCode();
+                    } else {
+                        contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS);
+                    }
+                })
+                .show();
+    }
+
+    private void showContactsPermissionDenied() {
+        new MaterialAlertDialogBuilder(this)
+                .setMessage(R.string.contacts_permission_denied)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.open_app_settings, (dialog, which) -> {
+                    Intent settingsIntent = new Intent(
+                            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", getPackageName(), null));
+                    try {
+                        startActivity(settingsIntent);
+                    } catch (ActivityNotFoundException error) {
+                        Snackbar.make(binding.mainRoot,
+                                R.string.invite_contacts_settings_unavailable,
+                                Snackbar.LENGTH_LONG).show();
+                    }
+                })
+                .show();
+    }
+
+    private void openContactPickerWithCurrentCode() {
+        if (currentMess == null) {
+            return;
+        }
+        String code = currentMess.getInvitationCode();
+        String messId = currentMess.getMessId();
+        String messName = currentMess.getName();
+        if (code == null || code.trim().isEmpty() || messId == null) {
+            Snackbar.make(binding.mainRoot, R.string.invitation_code_unavailable,
+                    Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
+        FirebaseFirestore.getInstance().collection("invitationCodes").document(code)
+                .get(Source.SERVER)
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful() || task.getResult() == null
+                            || !task.getResult().exists()) {
+                        String message = task.getException() != null
+                                && task.getException().getLocalizedMessage() != null
+                                ? task.getException().getLocalizedMessage()
+                                : getString(R.string.invitation_code_unavailable);
+                        Snackbar.make(binding.mainRoot, message, Snackbar.LENGTH_LONG).show();
+                        return;
+                    }
+                    DocumentSnapshot invitation = task.getResult();
+                    Object expiryValue = invitation.get("expiresAt");
+                    if (!Boolean.TRUE.equals(invitation.getBoolean("active"))
+                            || !messId.equals(invitation.getString("messId"))
+                            || !(expiryValue instanceof Number)) {
+                        Snackbar.make(binding.mainRoot, R.string.invitation_code_unavailable,
+                                Snackbar.LENGTH_LONG).show();
+                        return;
+                    }
+                    long expiresAt = ((Number) expiryValue).longValue();
+                    if (expiresAt <= System.currentTimeMillis()) {
+                        Snackbar.make(binding.mainRoot, R.string.invitation_code_expired,
+                                Snackbar.LENGTH_LONG).show();
+                        return;
+                    }
+                    if (currentMess == null || !messId.equals(currentMess.getMessId())
+                            || !code.equals(currentMess.getInvitationCode())) {
+                        Snackbar.make(binding.mainRoot, R.string.invitation_code_unavailable,
+                                Snackbar.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    Intent intent = new Intent(this, ContactPickerActivity.class);
+                    intent.putExtra(ContactPickerActivity.EXTRA_MESS_NAME, messName);
+                    intent.putExtra(ContactPickerActivity.EXTRA_INVITATION_CODE, code);
+                    intent.putExtra(ContactPickerActivity.EXTRA_EXPIRES_AT, expiresAt);
+                    startActivity(intent);
+                });
     }
 
     private void revokeInvitationCode() {
@@ -1152,21 +1799,226 @@ public class MainActivity extends AppCompatActivity
 
 
     private void openChooseScreen() {
+        MealReminderScheduler.cancel(this);
         Intent intent = new Intent(this, ChooseActivity.class);
+        intent.putExtra(AuthExtras.EXTRA_ROLE,
+                checkIsManager() ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
 
     private void openWelcome() {
+        MealReminderScheduler.cancel(this);
         Intent intent = new Intent(this, WelcomeActivity.class);
+        if (currentProfile != null && currentProfile.getRole() != null) {
+            intent.putExtra(AuthExtras.EXTRA_ROLE, currentProfile.getRole());
+        }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
     }
 
+    private void startPresence() {
+        presenceStarted = true;
+        FirebaseUser user = authRepository.getCurrentUser();
+        if (user == null) {
+            return;
+        }
+        presenceUid = user.getUid();
+
+        try {
+            connectedReference = FirebaseDatabase.getInstance().getReference(".info/connected");
+        } catch (DatabaseException error) {
+            Log.e("MainActivity", "Realtime Database is not configured", error);
+            Snackbar.make(binding.getRoot(), R.string.realtime_database_not_configured,
+                    Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
+        connectionListener = new ValueEventListener() {
+            @Override
+            public void onDataChange(@androidx.annotation.NonNull DataSnapshot snapshot) {
+                realtimeConnected = Boolean.TRUE.equals(snapshot.getValue(Boolean.class));
+                if (realtimeConnected) {
+                    registerOwnPresence();
+                }
+            }
+
+            @Override
+            public void onCancelled(@androidx.annotation.NonNull DatabaseError error) {
+                Log.e("MainActivity", "Realtime Database connection listener was cancelled",
+                        error.toException());
+                if (presenceStarted && binding != null) {
+                    Snackbar.make(binding.getRoot(), error.getMessage(), Snackbar.LENGTH_LONG).show();
+                }
+            }
+        };
+        connectedReference.addValueEventListener(connectionListener);
+    }
+
+    private void setPresenceMessId(String messId) {
+        if (presenceMessId != null && !presenceMessId.equals(messId)) {
+            setPresenceOffline(ownPresenceReference);
+            ownPresenceReference = null;
+        }
+        presenceMessId = messId;
+        stopMemberPresenceListener();
+        startMemberPresenceListener();
+        if (presenceStarted && realtimeConnected) {
+            registerOwnPresence();
+        }
+    }
+
+    private void startMemberPresenceListener() {
+        if (!presenceStarted || presenceMessId == null || presenceMessId.trim().isEmpty()
+                || memberPresenceListener != null) {
+            return;
+        }
+        try {
+            memberPresenceReference = FirebaseDatabase.getInstance().getReference()
+                    .child("presence").child(presenceMessId);
+            memberPresenceListener = new ValueEventListener() {
+                @Override
+                public void onDataChange(@androidx.annotation.NonNull DataSnapshot snapshot) {
+                    Map<String, MemberAdapter.PresenceStatus> presenceData = new HashMap<>();
+                    for (DataSnapshot memberSnapshot : snapshot.getChildren()) {
+                        Boolean online = memberSnapshot.child("online").getValue(Boolean.class);
+                        Long lastSeen = memberSnapshot.child("lastSeen").getValue(Long.class);
+                        presenceData.put(memberSnapshot.getKey(),
+                                new MemberAdapter.PresenceStatus(Boolean.TRUE.equals(online),
+                                        lastSeen != null ? lastSeen.longValue() : 0L));
+                    }
+                    if (memberAdapter != null) {
+                        memberAdapter.setPresenceData(presenceData);
+                    }
+                }
+
+                @Override
+                public void onCancelled(@androidx.annotation.NonNull DatabaseError error) {
+                    memberPresenceListener = null;
+                    memberPresenceReference = null;
+                    Log.e("MainActivity", "Member presence listener was cancelled",
+                            error.toException());
+                    if (presenceStarted && binding != null) {
+                        Snackbar.make(binding.getRoot(), error.getMessage(), Snackbar.LENGTH_LONG).show();
+                    }
+                }
+            };
+            memberPresenceReference.addValueEventListener(memberPresenceListener);
+        } catch (DatabaseException error) {
+            Log.e("MainActivity", "Unable to initialize member presence listener", error);
+            if (binding != null) {
+                Snackbar.make(binding.getRoot(), R.string.realtime_database_not_configured,
+                        Snackbar.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void stopMemberPresenceListener() {
+        if (memberPresenceReference != null && memberPresenceListener != null) {
+            memberPresenceReference.removeEventListener(memberPresenceListener);
+        }
+        memberPresenceReference = null;
+        memberPresenceListener = null;
+        if (memberAdapter != null) {
+            memberAdapter.setPresenceData(null);
+        }
+    }
+
+    private void registerOwnPresence() {
+        if (!presenceStarted || !realtimeConnected || presenceMessId == null
+                || presenceUid == null || presenceMessId.trim().isEmpty()) {
+            return;
+        }
+        if (ownPresenceReference == null) {
+            try {
+                ownPresenceReference = FirebaseDatabase.getInstance().getReference()
+                        .child("presence").child(presenceMessId).child(presenceUid);
+            } catch (DatabaseException error) {
+                Log.e("MainActivity", "Unable to initialize Realtime Database presence", error);
+                Snackbar.make(binding.getRoot(), R.string.realtime_database_not_configured,
+                        Snackbar.LENGTH_LONG).show();
+                return;
+            }
+        }
+
+        DatabaseReference reference = ownPresenceReference;
+        reference.onDisconnect().setValue(createPresenceValue(false))
+                .addOnSuccessListener(unused -> {
+                    if (presenceStarted && realtimeConnected
+                            && reference == ownPresenceReference) {
+                        reference.setValue(createPresenceValue(true))
+                                .addOnFailureListener(error ->
+                                        reportPresenceWriteFailure("set online", error));
+                    }
+                })
+                .addOnFailureListener(error ->
+                        reportPresenceWriteFailure("register onDisconnect", error));
+    }
+
+    private Map<String, Object> createPresenceValue(boolean online) {
+        Map<String, Object> value = new HashMap<>();
+        value.put("online", online);
+        value.put("lastSeen", ServerValue.TIMESTAMP);
+        return value;
+    }
+
+    private void setPresenceOffline(DatabaseReference reference) {
+        if (reference == null) {
+            return;
+        }
+        reference.setValue(createPresenceValue(false))
+                .addOnFailureListener(error -> reportPresenceWriteFailure("set offline", error));
+    }
+
+    private void stopPresence() {
+        presenceStarted = false;
+        realtimeConnected = false;
+        stopMemberPresenceListener();
+        setPresenceOffline(ownPresenceReference);
+        ownPresenceReference = null;
+        if (connectedReference != null && connectionListener != null) {
+            connectedReference.removeEventListener(connectionListener);
+        }
+        connectedReference = null;
+        connectionListener = null;
+    }
+
+    private void reportPresenceWriteFailure(String operation, Exception error) {
+        Log.e("MainActivity", "Unable to " + operation + " presence", error);
+        if (presenceStarted && binding != null) {
+            String message = error.getLocalizedMessage() != null
+                    ? error.getLocalizedMessage() : getString(R.string.err_generic, operation);
+            Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+        }
+    }
+
+    private void scheduleMealReminder(Mess mess) {
+        FirebaseUser user = authRepository.getCurrentUser();
+        if (user != null) {
+            MealReminderScheduler.schedule(this, user.getUid(), mess);
+        }
+    }
+
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        android.content.SharedPreferences preferences =
+                getSharedPreferences("notification_permissions", MODE_PRIVATE);
+        if (!preferences.getBoolean("meal_reminder_requested", false)) {
+            preferences.edit().putBoolean("meal_reminder_requested", true).apply();
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+        }
+    }
+
     @Override
     protected void onDestroy() {
+        stopPresence();
         handler.removeCallbacks(timerRunnable);
         if (messListener != null) messListener.remove();
         if (membersListener != null) membersListener.remove();
@@ -1178,6 +2030,8 @@ public class MainActivity extends AppCompatActivity
         if (adjustmentsListener != null) adjustmentsListener.remove();
         if (periodMealsListener != null) periodMealsListener.remove();
         if (archiveListener != null) archiveListener.remove();
+        timeCheckRepository.close();
+        profilePhotoExecutor.shutdown();
         super.onDestroy();
     }
 }

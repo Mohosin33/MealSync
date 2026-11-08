@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "995895257998",
+    "firebase_url": "https://mealsync-19c5f-default-rtdb.firebaseio.com",
     "project_id": "mealsync-19c5f",
     "storage_bucket": "mealsync-19c5f.firebasestorage.app"
   },

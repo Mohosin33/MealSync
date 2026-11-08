@@ -21,6 +21,10 @@
 
     <style name="Theme.MealSync" parent="Base.Theme.MealSync" />
 
+    <style name="ShapeAppearanceOverlay.MealSync.Circle" parent="">
+        <item name="cornerSize">50%</item>
+    </style>
+
     <style name="TextAppearance.MealSync.Headline" parent="TextAppearance.Material3.HeadlineMedium">
         <item name="android:textColor">@color/ms_text_primary</item>
         <item name="android:textStyle">bold</item>

@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "presence": {
+      "$messId": {
+        ".read": "auth != null && auth.token.email_verified == true",
+        "$uid": {
+          ".write": "auth != null && auth.token.email_verified == true && auth.uid == $uid",
+          ".validate": "newData.hasChildren(['online', 'lastSeen']) && newData.child('online').isBoolean() && newData.child('lastSeen').isNumber()",
+          "$field": {
+            ".validate": "$field == 'online' || $field == 'lastSeen'"
+          }
+        }
+      }
+    }
+  }
+}

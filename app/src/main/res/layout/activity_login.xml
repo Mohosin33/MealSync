@@ -144,16 +144,6 @@
                     android:textStyle="bold"
                     app:cornerRadius="16dp" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnResendVerification"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/resend_verification_email"
-                    android:textColor="@color/ms_teal"
-                    android:textSize="14sp" />
-
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

@@ -40,6 +40,7 @@
                     android:layout_height="wrap_content">
 
                     <TextView
+                        android:id="@+id/tvChooseTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentStart="true"
@@ -61,6 +62,7 @@
                 </RelativeLayout>
 
                 <TextView
+                    android:id="@+id/tvChooseSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
@@ -101,6 +103,7 @@
                         android:padding="20dp">
 
                         <TextView
+                            android:id="@+id/tvCreateMessTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/create_mess_option_title"
@@ -109,6 +112,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvCreateMessDescription"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
@@ -121,7 +125,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
-                            android:text="@string/create_mess_option_title"
+                            android:text="@string/create_mess_manager_title"
                             app:cornerRadius="12dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -146,6 +150,7 @@
                         android:padding="20dp">
 
                         <TextView
+                            android:id="@+id/tvJoinMessTitle"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/join_mess_option_title"
@@ -154,6 +159,7 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/tvJoinMessDescription"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="6dp"
@@ -167,7 +173,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
-                            android:text="@string/join_mess_option_title"
+                            android:text="@string/join_mess_member_title"
                             app:cornerRadius="12dp" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

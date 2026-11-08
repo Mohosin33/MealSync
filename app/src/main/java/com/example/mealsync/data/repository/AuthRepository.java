@@ -43,6 +43,16 @@ public class AuthRepository {
         auth.signOut();
     }
 
+    public void sendPasswordResetEmail(String email, ActionCallback callback) {
+        auth.sendPasswordResetEmail(email).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                callback.onSuccess();
+            } else {
+                callback.onFailure(task.getException());
+            }
+        });
+    }
+
     public void registerWithEmail(String email, String password, ActionCallback callback) {
         auth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
             if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
@@ -72,24 +82,6 @@ public class AuthRepository {
                         String userEmail = user.getEmail() != null ? user.getEmail() : email;
                         auth.signOut();
                         callback.onUnverifiedEmail(userEmail);
-                    }
-                });
-            } else {
-                callback.onFailure(task.getException());
-            }
-        });
-    }
-
-    public void resendVerificationEmail(String email, String password, ActionCallback callback) {
-        auth.signInWithEmailAndPassword(email, password).addOnCompleteListener(task -> {
-            if (task.isSuccessful() && task.getResult() != null && task.getResult().getUser() != null) {
-                FirebaseUser user = task.getResult().getUser();
-                user.sendEmailVerification().addOnCompleteListener(verifyTask -> {
-                    auth.signOut();
-                    if (verifyTask.isSuccessful()) {
-                        callback.onSuccess();
-                    } else {
-                        callback.onFailure(verifyTask.getException());
                     }
                 });
             } else {

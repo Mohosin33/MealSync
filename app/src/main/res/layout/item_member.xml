@@ -62,6 +62,31 @@
                 android:textColor="@color/ms_text_secondary"
                 android:textSize="13sp"
                 tools:text="john@example.com" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:id="@+id/memberPresenceDot"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/bg_presence_dot"
+                    android:backgroundTint="@color/ms_offline" />
+
+                <TextView
+                    android:id="@+id/tvMemberPresence"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/member_last_seen_unknown"
+                    android:textColor="@color/ms_offline"
+                    android:textSize="12sp"
+                    tools:text="Last seen 11/7/26, 9:00 PM" />
+            </LinearLayout>
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton

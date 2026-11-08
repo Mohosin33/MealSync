@@ -14,6 +14,8 @@
     <color name="ms_text_secondary">#475569</color>
     <color name="ms_negative">#B91C1C</color>
     <color name="ms_positive">#047857</color>
+    <color name="ms_online">#16A34A</color>
+    <color name="ms_offline">#64748B</color>
     <color name="header_member_start">#0F766E</color>
     <color name="header_member_end">#1E293B</color>
     <color name="header_manager_start">#92400E</color>

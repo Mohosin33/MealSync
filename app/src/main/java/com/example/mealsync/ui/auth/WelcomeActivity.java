@@ -1,17 +1,17 @@
 package com.example.mealsync.ui.auth;
 
 import android.animation.ArgbEvaluator;
-import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.text.Editable;
+import android.util.Patterns;
 import android.view.HapticFeedbackConstants;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,7 +35,7 @@ import com.example.mealsync.data.models.UserProfile;
 import com.example.mealsync.data.repository.AuthRepository;
 import com.example.mealsync.data.repository.MessRepository;
 import com.example.mealsync.databinding.ActivityWelcomeBinding;
-import com.example.mealsync.ui.common.StickyHeaderBehavior;
+import com.example.mealsync.ui.common.SimpleTextWatcher;
 import com.example.mealsync.ui.mess.ChooseActivity;
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
@@ -43,9 +43,6 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.GoogleAuthProvider;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Welcome screen with the Member / Manager path switch.
@@ -64,7 +61,6 @@ public class WelcomeActivity extends AppCompatActivity {
     private int indicatorWidth = 0;
     private int currentAccent;
     private ValueAnimator accentAnimator;
-    private final List<ObjectAnimator> floatAnimators = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,21 +69,20 @@ public class WelcomeActivity extends AppCompatActivity {
         binding = ActivityWelcomeBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         WindowCompat.getInsetsController(getWindow(), binding.getRoot())
-                .setAppearanceLightStatusBars(false);
+                .setAppearanceLightStatusBars(true);
+        WindowCompat.getInsetsController(getWindow(), binding.getRoot())
+                .setAppearanceLightNavigationBars(true);
 
+        String roleExtra = getIntent().getStringExtra(AuthExtras.EXTRA_ROLE);
+        managerSelected = AuthExtras.ROLE_MANAGER.equalsIgnoreCase(roleExtra);
         if (savedInstanceState != null) {
             managerSelected = savedInstanceState.getBoolean(STATE_MANAGER, false);
         }
 
         applyWindowInsets();
-        StickyHeaderBehavior.attach(binding.scrollContent, binding.header, R.drawable.bg_gradient_member);
         setupRoleToggle();
         setupButtons();
         applyRole(managerSelected, false);
-        startFloatingCircles();
-        if (savedInstanceState == null) {
-            playEntranceAnimation();
-        }
     }
 
     // ---------- Layout and insets ----------
@@ -96,11 +91,52 @@ public class WelcomeActivity extends AppCompatActivity {
         ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (v, insets) -> {
             Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()
                     | WindowInsetsCompat.Type.displayCutout());
-            binding.header.setPadding(0, bars.top, 0, 0);
-            binding.sheet.setPadding(dp(24) + bars.left, dp(28),
-                    dp(24) + bars.right, dp(24) + bars.bottom);
+            int imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
+            binding.header.setPadding(0, bars.top + dp(12), 0, 0);
+            binding.sheet.setPadding(dp(24) + bars.left, dp(16),
+                    dp(24) + bars.right, dp(24) + Math.max(bars.bottom, imeBottom));
             return insets;
         });
+    }
+
+    private void navigateToNextScreen(FirebaseUser user) {
+        if (user == null) return;
+
+        new MessRepository().getUserProfile(user.getUid(), new MessRepository.UserProfileCallback() {
+            @Override
+            public void onSuccess(UserProfile profile) {
+                if (profile != null && profile.getMessId() != null
+                        && !profile.getMessId().trim().isEmpty()) {
+                    openNextActivity(MainActivity.class);
+                } else {
+                    openChooseActivity();
+                }
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+                String message = error != null && error.getLocalizedMessage() != null
+                        ? error.getLocalizedMessage()
+                        : getString(R.string.err_generic, "Could not load your profile");
+                Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void openChooseActivity() {
+        Intent intent = new Intent(this, ChooseActivity.class);
+        intent.putExtra(AuthExtras.EXTRA_ROLE,
+                managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
+    private void openNextActivity(Class<?> activity) {
+        Intent intent = new Intent(this, activity);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     // ---------- Role toggle ----------
@@ -141,22 +177,15 @@ public class WelcomeActivity extends AppCompatActivity {
     private void applyRole(boolean manager, boolean animate) {
         binding.roleMember.setSelected(!manager);
         binding.roleManager.setSelected(manager);
-        binding.header.setBackgroundResource(manager
-                ? R.drawable.bg_gradient_manager : R.drawable.bg_gradient_member);
         int toAccent = ContextCompat.getColor(this,
                 manager ? R.color.ms_manager_end : R.color.ms_teal);
-        updateTexts(manager, animate);
-
         if (!animate) {
-            binding.bgManager.setAlpha(manager ? 1f : 0f);
             renderFraction(1f, toAccent, toAccent, manager);
             syncIndicator();
             return;
         }
 
         final int fromAccent = currentAccent;
-        binding.bgManager.animate().alpha(manager ? 1f : 0f)
-                .setDuration(ROLE_ANIM_MS).start();
         binding.roleIndicator.animate().translationX(manager ? indicatorWidth : 0f)
                 .setDuration(ROLE_ANIM_MS)
                 .setInterpolator(new DecelerateInterpolator(1.5f)).start();
@@ -179,9 +208,14 @@ public class WelcomeActivity extends AppCompatActivity {
 
         ColorStateList tint = ColorStateList.valueOf(accent);
         binding.roleIndicator.setBackgroundTintList(tint);
-        binding.btnPhone.setBackgroundTintList(tint);
+        binding.btnLogin.setBackgroundTintList(tint);
         binding.btnGoogle.setTextColor(accent);
         binding.btnGoogle.setStrokeColor(tint);
+        binding.tvGoToRegister.setTextColor(accent);
+        binding.tvForgotPassword.setTextColor(accent);
+        binding.header.getChildAt(0).setBackgroundTintList(tint);
+        binding.tilEmail.setBoxStrokeColor(accent);
+        binding.tilPassword.setBoxStrokeColor(accent);
 
         int white = Color.WHITE;
         int grey = ContextCompat.getColor(this, R.color.ms_text_secondary);
@@ -191,36 +225,113 @@ public class WelcomeActivity extends AppCompatActivity {
                 toManager ? grey : white, toManager ? white : grey));
     }
 
-    private void updateTexts(boolean manager, boolean animate) {
-        Runnable setTexts = () -> {
-            binding.tvWelcomeTitle.setText(manager
-                    ? R.string.welcome_manager_title : R.string.welcome_member_title);
-            binding.tvWelcomeSubtitle.setText(manager
-                    ? R.string.welcome_manager_subtitle : R.string.welcome_member_subtitle);
-        };
-        if (!animate) {
-            setTexts.run();
-            return;
-        }
-        binding.textBlock.animate().alpha(0f).translationY(dp(8)).setDuration(130)
-                .withEndAction(() -> {
-                    setTexts.run();
-                    binding.textBlock.setTranslationY(-dp(8));
-                    binding.textBlock.animate().alpha(1f).translationY(0f)
-                            .setDuration(220).start();
-                }).start();
-    }
-
     // ---------- Buttons & Auth ----------
 
     private void setupButtons() {
-        binding.btnPhone.setOnClickListener(v -> {
-            Intent intent = new Intent(this, LoginActivity.class);
+        binding.btnLogin.setOnClickListener(v -> attemptEmailLogin());
+        binding.btnGoogle.setOnClickListener(v -> signInWithGoogle());
+        binding.tvForgotPassword.setOnClickListener(v -> sendPasswordResetEmail());
+        binding.tvGoToRegister.setOnClickListener(v -> {
+            Intent intent = new Intent(this, RegisterActivity.class);
             intent.putExtra(AuthExtras.EXTRA_ROLE,
                     managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
             startActivity(intent);
         });
-        binding.btnGoogle.setOnClickListener(v -> signInWithGoogle());
+
+        SimpleTextWatcher clearErrorsWatcher = new SimpleTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                binding.tilEmail.setError(null);
+                binding.tilPassword.setError(null);
+            }
+        };
+        binding.etEmail.addTextChangedListener(clearErrorsWatcher);
+        binding.etPassword.addTextChangedListener(clearErrorsWatcher);
+    }
+
+    private void sendPasswordResetEmail() {
+        String email = binding.etEmail.getText() != null
+                ? binding.etEmail.getText().toString().trim() : "";
+        if (email.isEmpty()) {
+            binding.tilEmail.setError(getString(R.string.err_empty_email));
+            return;
+        }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.tilEmail.setError(getString(R.string.err_invalid_email));
+            return;
+        }
+
+        setLoading(true);
+        authRepository.sendPasswordResetEmail(email, new AuthRepository.ActionCallback() {
+            @Override
+            public void onSuccess() {
+                setLoading(false);
+                Snackbar.make(binding.getRoot(), R.string.password_reset_sent, Snackbar.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+                setLoading(false);
+                String message = error != null && error.getLocalizedMessage() != null
+                        ? error.getLocalizedMessage()
+                        : getString(R.string.err_generic, "Password reset email could not be sent");
+                Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void attemptEmailLogin() {
+        String email = binding.etEmail.getText() != null
+                ? binding.etEmail.getText().toString().trim() : "";
+        String password = binding.etPassword.getText() != null
+                ? binding.etPassword.getText().toString().trim() : "";
+
+        if (email.isEmpty()) {
+            binding.tilEmail.setError(getString(R.string.err_empty_email));
+            return;
+        }
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            binding.tilEmail.setError(getString(R.string.err_invalid_email));
+            return;
+        }
+        if (password.isEmpty()) {
+            binding.tilPassword.setError(getString(R.string.err_empty_password));
+            return;
+        }
+
+        setLoading(true);
+        authRepository.signInWithEmail(email, password, new AuthRepository.EmailSignInCallback() {
+            @Override
+            public void onSuccess(FirebaseUser user) {
+                setLoading(false);
+                navigateToNextScreen(user);
+            }
+
+            @Override
+            public void onUnverifiedEmail(String unverifiedEmail) {
+                setLoading(false);
+                Snackbar.make(binding.getRoot(), R.string.err_email_not_verified, Snackbar.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onFailure(Exception error) {
+                setLoading(false);
+                String message = error != null && error.getLocalizedMessage() != null
+                        ? error.getLocalizedMessage()
+                        : getString(R.string.err_generic, "Sign in failed");
+                Snackbar.make(binding.getRoot(), message, Snackbar.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void setLoading(boolean loading) {
+        binding.progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        binding.btnLogin.setEnabled(!loading);
+        binding.btnGoogle.setEnabled(!loading);
+        binding.tvGoToRegister.setEnabled(!loading);
+        binding.tvForgotPassword.setEnabled(!loading);
+        binding.roleMember.setEnabled(!loading);
+        binding.roleManager.setEnabled(!loading);
     }
 
     private void signInWithGoogle() {
@@ -236,8 +347,7 @@ public class WelcomeActivity extends AppCompatActivity {
                 .addCredentialOption(googleIdOption)
                 .build();
 
-        binding.btnGoogle.setEnabled(false);
-        binding.btnPhone.setEnabled(false);
+        setLoading(true);
 
         credentialManager.getCredentialAsync(
                 this,
@@ -252,8 +362,7 @@ public class WelcomeActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(GetCredentialException e) {
-                        binding.btnGoogle.setEnabled(true);
-                        binding.btnPhone.setEnabled(true);
+                        setLoading(false);
                         if (!(e instanceof GetCredentialCancellationException)) {
                             String message = e.getLocalizedMessage() != null
                                     ? e.getLocalizedMessage()
@@ -276,14 +385,16 @@ public class WelcomeActivity extends AppCompatActivity {
                 AuthCredential authCredential = GoogleAuthProvider.getCredential(idToken, null);
                 firebaseSignInWithGoogle(authCredential);
             } catch (Exception e) {
-                binding.btnGoogle.setEnabled(true);
-                binding.btnPhone.setEnabled(true);
-                Snackbar.make(binding.getRoot(), R.string.err_generic, Snackbar.LENGTH_LONG).show();
+                setLoading(false);
+                Snackbar.make(binding.getRoot(),
+                        getString(R.string.err_generic, "Google sign-in failed"),
+                        Snackbar.LENGTH_LONG).show();
             }
         } else {
-            binding.btnGoogle.setEnabled(true);
-            binding.btnPhone.setEnabled(true);
-            Snackbar.make(binding.getRoot(), R.string.err_generic, Snackbar.LENGTH_LONG).show();
+            setLoading(false);
+            Snackbar.make(binding.getRoot(),
+                    getString(R.string.err_generic, "Google sign-in failed"),
+                    Snackbar.LENGTH_LONG).show();
         }
     }
 
@@ -291,33 +402,13 @@ public class WelcomeActivity extends AppCompatActivity {
         authRepository.signInWithCredential(credential, new AuthRepository.SignInCallback() {
             @Override
             public void onSuccess(FirebaseUser user) {
-                new MessRepository().getUserProfile(user.getUid(), new MessRepository.UserProfileCallback() {
-                    @Override
-                    public void onSuccess(UserProfile profile) {
-                        Class<?> target = (profile != null && profile.getMessId() != null && !profile.getMessId().trim().isEmpty())
-                                ? MainActivity.class : ChooseActivity.class;
-                        Intent intent = new Intent(WelcomeActivity.this, target);
-                        intent.putExtra(AuthExtras.EXTRA_ROLE, managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
-                        finish();
-                    }
-
-                    @Override
-                    public void onFailure(Exception error) {
-                        Intent intent = new Intent(WelcomeActivity.this, ChooseActivity.class);
-                        intent.putExtra(AuthExtras.EXTRA_ROLE, managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                        startActivity(intent);
-                        finish();
-                    }
-                });
+                setLoading(false);
+                navigateToNextScreen(user);
             }
 
             @Override
             public void onFailure(Exception error) {
-                binding.btnGoogle.setEnabled(true);
-                binding.btnPhone.setEnabled(true);
+                setLoading(false);
                 String msg = error != null && error.getLocalizedMessage() != null
                         ? error.getLocalizedMessage()
                         : getString(R.string.err_generic, "Sign in failed");
@@ -326,63 +417,7 @@ public class WelcomeActivity extends AppCompatActivity {
         });
     }
 
-    // ---------- Animations ----------
-
-    private void playEntranceAnimation() {
-        binding.header.setAlpha(0f);
-        binding.header.setTranslationY(-dp(24));
-        binding.header.animate().alpha(1f).translationY(0f).setDuration(700)
-                .setInterpolator(new DecelerateInterpolator()).start();
-
-        // The sheet slides up first, then its content appears one item at a time.
-        binding.sheet.setTranslationY(dp(480));
-        binding.sheet.animate().translationY(0f).setStartDelay(250).setDuration(650)
-                .setInterpolator(new DecelerateInterpolator(2f)).start();
-
-        View[] items = {binding.roleToggle, binding.textBlock,
-                binding.btnPhone, binding.btnGoogle, binding.tvNote};
-        for (int i = 0; i < items.length; i++) {
-            items[i].setAlpha(0f);
-            items[i].setTranslationY(dp(30));
-            items[i].animate().alpha(1f).translationY(0f)
-                    .setStartDelay(500 + i * 90L).setDuration(450)
-                    .setInterpolator(new DecelerateInterpolator()).start();
-        }
-    }
-
-    private void startFloatingCircles() {
-        addFloat(binding.circleOne, dp(28), 5200L);
-        addFloat(binding.circleTwo, -dp(22), 4300L);
-        addFloat(binding.circleThree, dp(18), 6100L);
-    }
-
-    private void addFloat(View view, float distance, long duration) {
-        ObjectAnimator a = ObjectAnimator.ofFloat(view, View.TRANSLATION_Y, 0f, distance);
-        a.setDuration(duration);
-        a.setRepeatMode(ValueAnimator.REVERSE);
-        a.setRepeatCount(ValueAnimator.INFINITE);
-        a.setInterpolator(new AccelerateDecelerateInterpolator());
-        a.start();
-        floatAnimators.add(a);
-    }
-
     // ---------- Lifecycle ----------
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        for (ObjectAnimator a : floatAnimators) {
-            a.pause();
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        for (ObjectAnimator a : floatAnimators) {
-            a.resume();
-        }
-    }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -392,10 +427,6 @@ public class WelcomeActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        for (ObjectAnimator a : floatAnimators) {
-            a.cancel();
-        }
-        floatAnimators.clear();
         if (accentAnimator != null) {
             accentAnimator.cancel();
         }

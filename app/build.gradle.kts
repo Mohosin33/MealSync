@@ -51,7 +51,9 @@ dependencies {
     // Firebase (versions controlled by the BoM)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
+    implementation(libs.firebase.database)
     implementation(libs.firebase.firestore)
+    implementation(libs.glide)
 
     // Google Sign-In through Credential Manager
     implementation(libs.credentials)
@@ -71,6 +73,7 @@ dependencies {
 
     // Tests
     testImplementation(libs.junit)
+    testImplementation(libs.json)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 }

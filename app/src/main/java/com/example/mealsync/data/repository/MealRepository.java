@@ -74,14 +74,21 @@ public class MealRepository {
                     meal.setPending(snapshot.getMetadata().hasPendingWrites());
                     listener.onMealUpdated(meal);
                 } else {
-                    Meal defaultMeal = new Meal(date, uid, false, false, 0);
+                    Meal defaultMeal = new Meal(date, uid, true, true, 0);
                     defaultMeal.setPending(snapshot.getMetadata().hasPendingWrites());
                     listener.onMealUpdated(defaultMeal);
                 }
             } else if (snapshot != null) {
-                Meal defaultMeal = new Meal(date, uid, false, false, 0);
+                Meal defaultMeal = new Meal(date, uid, true, true, 0);
                 defaultMeal.setPending(snapshot.getMetadata().hasPendingWrites());
                 listener.onMealUpdated(defaultMeal);
+                db.runTransaction(transaction -> {
+                    DocumentSnapshot currentSnapshot = transaction.get(docRef);
+                    if (!currentSnapshot.exists()) {
+                        transaction.set(docRef, createMealData(date, uid, true, true, 0));
+                    }
+                    return null;
+                }).addOnFailureListener(listener::onError);
             }
         });
     }
@@ -97,22 +104,25 @@ public class MealRepository {
         String docId = date + "_" + uid;
         int clampedGuests = Math.max(0, Math.min(10, guests));
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("date", date);
-        data.put("uid", uid);
-        data.put("lunch", lunch);
-        data.put("dinner", dinner);
-        data.put("guests", clampedGuests);
-        data.put("updatedAt", FieldValue.serverTimestamp());
-
         DocumentReference docRef = db.collection("messes").document(messId).collection("meals").document(docId);
-        docRef.set(data).addOnCompleteListener(task -> {
+        docRef.set(createMealData(date, uid, lunch, dinner, clampedGuests)).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 callback.onSuccess();
             } else {
                 callback.onFailure(task.getException());
             }
         });
+    }
+
+    private Map<String, Object> createMealData(String date, String uid, boolean lunch, boolean dinner, int guests) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("date", date);
+        data.put("uid", uid);
+        data.put("lunch", lunch);
+        data.put("dinner", dinner);
+        data.put("guests", guests);
+        data.put("updatedAt", FieldValue.serverTimestamp());
+        return data;
     }
 
     public ListenerRegistration observeMyMeals(String messId, String uid, MyMealsListener listener) {

@@ -62,7 +62,7 @@ public class RegisterActivity extends AppCompatActivity {
     private void setupListeners() {
         binding.btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
         binding.tvGoToLogin.setOnClickListener(v -> {
-            Intent intent = new Intent(this, LoginActivity.class);
+            Intent intent = new Intent(this, WelcomeActivity.class);
             intent.putExtra(AuthExtras.EXTRA_ROLE, role);
             startActivity(intent);
             finish();
@@ -114,7 +114,7 @@ public class RegisterActivity extends AppCompatActivity {
                         .setTitle(R.string.registration_success_title)
                         .setMessage(getString(R.string.registration_success_msg, email))
                         .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+                            Intent intent = new Intent(RegisterActivity.this, WelcomeActivity.class);
                             intent.putExtra(AuthExtras.EXTRA_ROLE, role);
                             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
                             startActivity(intent);

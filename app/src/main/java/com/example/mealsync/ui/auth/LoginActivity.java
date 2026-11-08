@@ -91,7 +91,6 @@ public class LoginActivity extends AppCompatActivity {
 
         ColorStateList tint = ColorStateList.valueOf(accent);
         binding.btnLogin.setBackgroundTintList(tint);
-        binding.btnResendVerification.setTextColor(accent);
         binding.tilEmail.setBoxStrokeColor(accent);
         binding.tilPassword.setBoxStrokeColor(accent);
         binding.btnGoogle.setTextColor(accent);
@@ -100,9 +99,14 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        binding.btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+        binding.btnBack.setOnClickListener(v -> {
+            Intent intent = new Intent(this, WelcomeActivity.class);
+            intent.putExtra(AuthExtras.EXTRA_ROLE,
+                    managerSelected ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER);
+            startActivity(intent);
+            finish();
+        });
         binding.btnLogin.setOnClickListener(v -> attemptEmailLogin());
-        binding.btnResendVerification.setOnClickListener(v -> attemptResendVerification());
         binding.btnGoogle.setOnClickListener(v -> signInWithGoogle());
         binding.tvGoToRegister.setOnClickListener(v -> {
             Intent intent = new Intent(this, RegisterActivity.class);
@@ -150,9 +154,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onUnverifiedEmail(String email) {
                 setLoading(false);
-                Snackbar.make(binding.getRoot(), R.string.err_email_not_verified, Snackbar.LENGTH_INDEFINITE)
-                        .setAction(R.string.resend_action, v -> attemptResendVerification())
-                        .show();
+                Snackbar.make(binding.getRoot(), R.string.err_email_not_verified, Snackbar.LENGTH_LONG).show();
             }
 
             @Override
@@ -160,37 +162,6 @@ public class LoginActivity extends AppCompatActivity {
                 setLoading(false);
                 String msg = error != null && error.getLocalizedMessage() != null
                         ? error.getLocalizedMessage() : getString(R.string.err_generic, "Login failed");
-                Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_LONG).show();
-            }
-        });
-    }
-
-    private void attemptResendVerification() {
-        String email = binding.etEmail.getText() != null ? binding.etEmail.getText().toString().trim() : "";
-        String password = binding.etPassword.getText() != null ? binding.etPassword.getText().toString().trim() : "";
-
-        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            binding.tilEmail.setError(getString(R.string.err_invalid_email));
-            return;
-        }
-        if (password.isEmpty()) {
-            binding.tilPassword.setError(getString(R.string.err_empty_password));
-            return;
-        }
-
-        setLoading(true);
-        authRepository.resendVerificationEmail(email, password, new AuthRepository.ActionCallback() {
-            @Override
-            public void onSuccess() {
-                setLoading(false);
-                Snackbar.make(binding.getRoot(), getString(R.string.verification_email_sent, email), Snackbar.LENGTH_LONG).show();
-            }
-
-            @Override
-            public void onFailure(Exception error) {
-                setLoading(false);
-                String msg = error != null && error.getLocalizedMessage() != null
-                        ? error.getLocalizedMessage() : getString(R.string.err_generic, "Resend failed");
                 Snackbar.make(binding.getRoot(), msg, Snackbar.LENGTH_LONG).show();
             }
         });
@@ -304,7 +275,6 @@ public class LoginActivity extends AppCompatActivity {
     private void setLoading(boolean loading) {
         binding.progress.setVisibility(loading ? View.VISIBLE : View.GONE);
         binding.btnLogin.setEnabled(!loading);
-        binding.btnResendVerification.setEnabled(!loading);
         binding.btnGoogle.setEnabled(!loading);
         binding.tvGoToRegister.setEnabled(!loading);
     }

@@ -4,50 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/ms_card"
     tools:context=".ui.auth.WelcomeActivity">
-
-    <View
-        android:id="@+id/bgMember"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@drawable/bg_gradient_member" />
-
-    <View
-        android:id="@+id/bgManager"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:alpha="0"
-        android:background="@drawable/bg_gradient_manager" />
-
-    <View
-        android:id="@+id/circleOne"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="40dp"
-        android:layout_marginEnd="-70dp"
-        android:background="@drawable/bg_circle_soft"
-        android:importantForAccessibility="no" />
-
-    <View
-        android:id="@+id/circleTwo"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:layout_gravity="top|start"
-        android:layout_marginStart="-50dp"
-        android:layout_marginTop="190dp"
-        android:background="@drawable/bg_circle_soft"
-        android:importantForAccessibility="no" />
-
-    <View
-        android:id="@+id/circleThree"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="top|start"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="70dp"
-        android:background="@drawable/bg_circle_soft"
-        android:importantForAccessibility="no" />
 
     <ScrollView
         android:id="@+id/scrollContent"
@@ -58,64 +16,64 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="vertical">
 
             <LinearLayout
                 android:id="@+id/header"
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1"
+                android:layout_height="wrap_content"
                 android:gravity="center"
-                android:minHeight="220dp"
                 android:orientation="vertical">
 
                 <FrameLayout
-                    android:layout_width="104dp"
-                    android:layout_height="104dp"
-                    android:background="@drawable/bg_logo_circle">
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/bg_toggle_thumb">
 
                     <ImageView
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
                         android:layout_gravity="center"
                         android:contentDescription="@string/cd_logo"
                         android:src="@drawable/ic_logo" />
                 </FrameLayout>
 
                 <TextView
+                    android:id="@+id/tvWelcomeTitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:text="@string/app_name"
-                    android:textColor="@color/white"
-                    android:textSize="34sp"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/login_title"
+                    android:textColor="@color/ms_text_primary"
+                    android:textSize="20sp"
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvWelcomeSubtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="@string/splash_tagline"
-                    android:textColor="#CCFFFFFF"
-                    android:textSize="15sp" />
+                    android:text="@string/welcome_signin_subtitle"
+                    android:textColor="@color/ms_text_secondary"
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/sheet"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_sheet_top"
                 android:orientation="vertical"
                 android:paddingStart="24dp"
-                android:paddingTop="28dp"
+                android:paddingTop="20dp"
                 android:paddingEnd="24dp"
                 android:paddingBottom="24dp">
 
                 <FrameLayout
                     android:id="@+id/roleToggle"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="48dp"
                     android:background="@drawable/bg_toggle_track"
                     android:padding="4dp">
 
@@ -158,66 +116,126 @@
                     </LinearLayout>
                 </FrameLayout>
 
-                <LinearLayout
-                    android:id="@+id/textBlock"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="@string/email_label"
+                    android:textColor="@color/ms_text_primary"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilEmail"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical">
+                    android:layout_marginTop="4dp"
+                    android:hint="@string/email_entry_hint"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp">
 
-                    <TextView
-                        android:id="@+id/tvWelcomeTitle"
-                        style="@style/TextAppearance.MealSync.Headline"
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etEmail"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/welcome_member_title"
-                        android:textSize="24sp" />
+                        android:inputType="textEmailAddress"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
 
-                    <TextView
-                        android:id="@+id/tvWelcomeSubtitle"
-                        style="@style/TextAppearance.MealSync.Body"
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/password_label"
+                    android:textColor="@color/ms_text_primary"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilPassword"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:hint="@string/password_entry_hint"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:passwordToggleEnabled="true">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etPassword"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:minLines="3"
-                        android:text="@string/welcome_member_subtitle" />
-                </LinearLayout>
+                        android:inputType="textPassword"
+                        android:maxLines="1" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:id="@+id/tvForgotPassword"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="end"
+                    android:layout_marginTop="8dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="4dp"
+                    android:text="@string/forgot_password"
+                    android:textColor="@color/ms_teal"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/progress"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="8dp"
+                    android:indeterminate="true"
+                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnPhone"
+                    android:id="@+id/btnLogin"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="@string/continue_email"
-                    app:iconGravity="textStart"
-                    app:iconPadding="8dp" />
+                    android:layout_marginTop="8dp"
+                    android:minHeight="48dp"
+                    android:text="@string/login_btn"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    app:cornerRadius="10dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnGoogle"
                     style="@style/Widget.Material3.Button.OutlinedButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:minHeight="56dp"
+                    android:layout_marginTop="8dp"
+                    android:minHeight="44dp"
                     android:text="@string/continue_google"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    app:cornerRadius="16dp"
+                    app:cornerRadius="10dp"
                     app:icon="@drawable/ic_google"
                     app:iconGravity="textStart"
                     app:iconPadding="12dp"
                     app:iconTint="@null" />
 
                 <TextView
-                    android:id="@+id/tvNote"
-                    android:layout_width="match_parent"
+                    android:id="@+id/tvGoToRegister"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center"
-                    android:text="@string/role_note"
-                    android:textColor="@color/ms_text_secondary"
-                    android:textSize="12sp" />
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="12dp"
+                    android:padding="6dp"
+                    android:text="@string/dont_have_account"
+                    android:textColor="@color/ms_teal"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
             </LinearLayout>
+
         </LinearLayout>
     </ScrollView>
 </FrameLayout>

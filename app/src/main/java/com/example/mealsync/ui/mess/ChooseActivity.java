@@ -23,6 +23,7 @@ public class ChooseActivity extends AppCompatActivity {
 
     private ActivityChooseBinding binding;
     private final AuthRepository authRepository = new AuthRepository();
+    private String selectedRole = AuthExtras.ROLE_MEMBER;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +37,8 @@ public class ChooseActivity extends AppCompatActivity {
         applyWindowInsets();
         StickyHeaderBehavior.attach(binding.scrollContent, binding.header, com.example.mealsync.R.drawable.bg_gradient_member);
         setupListeners();
+        binding.cardCreateMess.setVisibility(View.GONE);
+        binding.cardJoinMess.setVisibility(View.GONE);
         applyRoleVisibility();
     }
 
@@ -77,15 +80,29 @@ public class ChooseActivity extends AppCompatActivity {
     }
 
     private void renderOptionCards(String role) {
+        selectedRole = AuthExtras.ROLE_MANAGER.equalsIgnoreCase(role)
+                ? AuthExtras.ROLE_MANAGER : AuthExtras.ROLE_MEMBER;
         boolean isManager = AuthExtras.ROLE_MANAGER.equalsIgnoreCase(role);
         binding.cardCreateMess.setVisibility(isManager ? View.VISIBLE : View.GONE);
         binding.cardJoinMess.setVisibility(isManager ? View.GONE : View.VISIBLE);
+        if (isManager) {
+            binding.tvChooseSubtitle.setText(com.example.mealsync.R.string.choose_manager_subtitle);
+            binding.tvCreateMessTitle.setText(com.example.mealsync.R.string.create_mess_manager_title);
+            binding.tvCreateMessDescription.setText(com.example.mealsync.R.string.create_mess_manager_desc);
+            binding.btnCreateMess.setText(com.example.mealsync.R.string.create_mess_manager_title);
+        } else {
+            binding.tvChooseSubtitle.setText(com.example.mealsync.R.string.choose_member_subtitle);
+            binding.tvJoinMessTitle.setText(com.example.mealsync.R.string.join_mess_member_title);
+            binding.tvJoinMessDescription.setText(com.example.mealsync.R.string.join_mess_member_desc);
+            binding.btnJoinMess.setText(com.example.mealsync.R.string.join_mess_member_title);
+        }
     }
 
     private void setupListeners() {
         binding.btnLogout.setOnClickListener(v -> {
             authRepository.signOut();
             Intent intent = new Intent(this, WelcomeActivity.class);
+            intent.putExtra(AuthExtras.EXTRA_ROLE, selectedRole);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();

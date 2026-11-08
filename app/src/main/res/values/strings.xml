@@ -1,5 +1,9 @@
 <resources>
     <string name="app_name">MealSync</string>
+    <string name="realtime_database_not_configured">Realtime Database is not configured. Update google-services.json after creating the database.</string>
+    <string name="member_online">Online</string>
+    <string name="member_last_seen">Last seen %1$s</string>
+    <string name="member_last_seen_unknown">Last seen unavailable</string>
     <string name="switch_to_dark_mode">Switch to dark mode</string>
     <string name="switch_to_light_mode">Switch to light mode</string>
     <string name="cd_logo">MealSync logo</string>
@@ -20,6 +24,7 @@
 
     <!-- Login & Registration -->
     <string name="login_title">Welcome back</string>
+    <string name="welcome_signin_subtitle">Welcome back! Please enter your details.</string>
     <string name="login_subtitle_member">Sign in to manage your meals and mess balance</string>
     <string name="login_subtitle_manager">Sign in to manage your mess operations</string>
     <string name="register_title">Create Account</string>
@@ -27,26 +32,42 @@
 
     <string name="email_hint">Email address</string>
     <string name="password_hint">Password</string>
+    <string name="email_label">Email</string>
+    <string name="password_label">Password</string>
+    <string name="email_entry_hint">Enter your email</string>
+    <string name="password_entry_hint">Enter your password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="password_reset_sent">Password reset email sent. Check your inbox.</string>
+    <string name="meal_reminder_channel">Meal cutoff reminders</string>
+    <string name="meal_reminder_channel_description">A reminder before the meal selection cutoff.</string>
+    <string name="meal_reminder_title">Meal cutoff in 10 minutes</string>
+    <string name="meal_reminder_message">Update your meal choices before the cutoff.</string>
+    <string name="meal_reminder_message_for_mess">%1$s meal selection closes in 10 minutes. Update your choices now.</string>
+    <string name="offline_banner_message">No internet connection. Changes are saved on this phone and sync when connected.</string>
+    <string name="airplane_mode_banner_message">Airplane mode is on. Meal changes are saved on this phone and sync later.</string>
     <string name="confirm_password_hint">Confirm password</string>
     <string name="login_btn">Sign In</string>
     <string name="register_btn">Register</string>
-    <string name="resend_verification_email">Resend verification email</string>
-    <string name="resend_action">Resend</string>
     <string name="or_divider">OR</string>
     <string name="already_have_account">Already have an account? Sign In</string>
     <string name="dont_have_account">Don\'t have an account? Register</string>
 
     <string name="registration_success_title">Registration Successful</string>
     <string name="registration_success_msg">A verification link has been sent to %1$s. Please verify your email before signing in.</string>
-    <string name="verification_email_sent">Verification email sent to %1$s.</string>
 
     <!-- Choose Screen -->
     <string name="choose_title">Get Started</string>
     <string name="choose_subtitle">Create a new mess as a manager or join an existing mess as a member.</string>
+    <string name="choose_manager_subtitle">Create a new mess as a manager.</string>
+    <string name="choose_member_subtitle">Join an existing mess as a member.</string>
     <string name="create_mess_option_title">Create a Mess</string>
     <string name="create_mess_option_desc">Set up a new mess, invite members with a 6-digit code, and manage meal logs.</string>
+    <string name="create_mess_manager_title">Create a new mess as a Manager</string>
+    <string name="create_mess_manager_desc">Set up a mess, invite members with a 6-digit code, and manage meal logs.</string>
     <string name="join_mess_option_title">Join a Mess</string>
     <string name="join_mess_option_desc">Enter the 6-digit invitation code provided by your mess manager.</string>
+    <string name="join_mess_member_title">Join an existing mess as a member</string>
+    <string name="join_mess_member_desc">Enter the 6-digit invitation code provided by your mess manager.</string>
 
     <!-- Create Mess Screen -->
     <string name="create_mess_title">Create New Mess</string>
@@ -75,6 +96,23 @@
     <string name="share_code">Share Code</string>
     <string name="revoke_code">Revoke Code</string>
     <string name="regenerate_code">Regenerate Code</string>
+    <string name="invite_from_contacts">Invite from contacts</string>
+    <string name="continue_action">Continue</string>
+    <string name="contacts_permission_title">Use contacts to invite</string>
+    <string name="contacts_permission_explanation">MealSync will read contact names and phone numbers only to show you whom to invite. Contacts stay on this phone and are never saved or uploaded.</string>
+    <string name="contacts_permission_denied">Contacts permission is off, so MealSync cannot show your contacts. You can enable it in app settings.</string>
+    <string name="open_app_settings">Open app settings</string>
+    <string name="invite_contacts_settings_unavailable">Could not open app settings.</string>
+    <string name="contacts_picker_help">Choose a contact to open your SMS app with the invitation details filled in.</string>
+    <string name="search_contacts">Search contacts</string>
+    <string name="contacts_empty">No contacts with phone numbers were found.</string>
+    <string name="contacts_search_empty">No matching contacts.</string>
+    <string name="contacts_load_failed">Could not read contacts. Check the contacts permission in app settings and try again.</string>
+    <string name="contact_without_name">Unnamed contact</string>
+    <string name="no_sms_app_available">No SMS app is available on this phone.</string>
+    <string name="invite_contact_sms">Join %1$s on MealSync with invitation code %2$s. This code expires on %3$s.</string>
+    <string name="invitation_code_unavailable">The invitation code is unavailable. Refresh the dashboard and try again.</string>
+    <string name="invitation_code_expired">This invitation code has expired. Generate a new code before inviting contacts.</string>
     <string name="code_revoked">Invitation code revoked.</string>
     <string name="code_regenerated">New invitation code generated: %1$s</string>
     <string name="share_subject">Join my mess on MealSync!</string>
@@ -82,6 +120,12 @@
 
     <!-- Mess Settings -->
     <string name="settings_title">Mess Settings</string>
+    <string name="delete_mess">Delete mess</string>
+    <string name="deleting_mess">Deleting mess…</string>
+    <string name="delete_mess_confirm_title">Delete this mess?</string>
+    <string name="delete_mess_confirm_message">Are you sure you want to permanently delete %1$s? This will destroy all mess records, remove every member from the mess, and cannot be undone. Member accounts will remain so they can create or join another mess.</string>
+    <string name="delete_mess_confirm_yes">Yes, delete</string>
+    <string name="delete_mess_failed">Couldn’t delete the mess. Please try again.</string>
     <string name="settings_subtitle">Edit mess details, fixed meal rate, meal cutoff time, and timezone.</string>
     <string name="meal_rate_hint">Fixed meal rate in Taka (e.g. 40)</string>
     <string name="err_invalid_meal_rate">Enter a meal rate greater than zero.</string>
@@ -166,6 +210,8 @@
     <string name="cutoff_closes_in">Meal choices close in %1$dh %2$dm</string>
     <string name="cutoff_closed">Meal choices for tomorrow are closed. The cutoff time was %1$s.</string>
     <string name="meal_editing_closed">Meal choices are closed for tomorrow.</string>
+    <string name="meal_load_failed">Couldn’t load your meal choices. Please try again.</string>
+    <string name="meal_save_failed">Couldn’t save your meal choices. Please try again.</string>
     <string name="setup_incomplete">Setup is incomplete. Ask the manager to finish setting up the mess.</string>
     <string name="setup_incomplete_short">Setup incomplete</string>
     <string name="loading_member_data">Member details are still loading. Please wait a moment.</string>
@@ -261,8 +307,39 @@
 
     <!-- Profile Screen -->
     <string name="profile_title">My Profile</string>
+    <string name="edit_profile">Edit profile</string>
+    <string name="edit_profile_title">Edit your profile</string>
+    <string name="save_profile">Save</string>
+    <string name="profile_photo">Profile photo</string>
+    <string name="change_photo">Change photo</string>
+    <string name="profile_name_hint">Your name</string>
+    <string name="profile_name_required">Enter your name.</string>
+    <string name="profile_saved">Profile updated.</string>
+    <string name="profile_update_failed">Could not update your profile. Please try again.</string>
+    <string name="profile_photo_save_failed">Could not save the selected photo on this device.</string>
+    <string name="profile_saving">Saving…</string>
     <string name="role_badge_manager">MANAGER</string>
     <string name="role_badge_member">MEMBER</string>
+    <string name="clock_check_title">Clock check</string>
+    <string name="clock_check_description">Compare your phone clock with trusted network time.</string>
+    <string name="clock_check_network_not_checked">Network time: Not checked</string>
+    <string name="clock_check_phone_not_checked">Phone time: Not checked</string>
+    <string name="clock_check_difference_not_checked">Difference: Not checked</string>
+    <string name="clock_check_initial_status">Check your clock when you are online.</string>
+    <string name="clock_check_loading">Checking network time…</string>
+    <string name="clock_check_button">Check again</string>
+    <string name="clock_check_network_value">Network time: %1$s</string>
+    <string name="clock_check_phone_value">Phone time: %1$s</string>
+    <string name="clock_check_difference_value">Difference (network vs phone): %1$s</string>
+    <string name="clock_check_difference_format">%1$s%2$d h %3$d min %4$d sec</string>
+    <string name="clock_check_complete">Clock check complete.</string>
+    <string name="clock_check_complete_off">Clock check complete. Your phone clock may be inaccurate.</string>
+    <string name="clock_check_warning">Your device time is incorrect. Please check your date and time settings.</string>
+    <string name="clock_check_error_offline">No network connection. Connect to the internet and try again.</string>
+    <string name="clock_check_error_timeout">The time service took too long to respond. Try again.</string>
+    <string name="clock_check_error_http">The time service returned an error. Try again later.</string>
+    <string name="clock_check_error_bad_response">The time service returned an invalid response. Try again later.</string>
+    <string name="clock_check_error_other">Could not check the clock. Please try again.</string>
 
     <!-- Errors -->
     <string name="err_empty_email">Enter your email address.</string>
@@ -270,7 +347,7 @@
     <string name="err_empty_password">Enter your password.</string>
     <string name="err_short_password">Password must be at least 6 characters.</string>
     <string name="err_password_mismatch">Passwords do not match.</string>
-    <string name="err_email_not_verified">Your email is not verified yet. Please check your inbox or resend the verification link.</string>
+    <string name="err_email_not_verified">Your email is not verified yet. Please check your inbox for the verification link.</string>
     <string name="err_network">No internet connection. Check your network and try again.</string>
     <string name="err_generic">Something went wrong (%1$s). Please try again.</string>
 
