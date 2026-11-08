@@ -766,9 +766,16 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:insetLeft="0dp"
+                        android:insetRight="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
+                        android:singleLine="true"
                         android:text="@string/tab_expenses"
                         android:textColor="@color/money_subtab_text"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
 
@@ -778,9 +785,16 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:insetLeft="0dp"
+                        android:insetRight="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
+                        android:singleLine="true"
                         android:text="@string/tab_deposits"
                         android:textColor="@color/money_subtab_text"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
 
@@ -790,9 +804,16 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:insetLeft="0dp"
+                        android:insetRight="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
+                        android:singleLine="true"
                         android:text="@string/tab_summary"
                         android:textColor="@color/money_subtab_text"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
 
@@ -802,11 +823,39 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
+                        android:insetLeft="0dp"
+                        android:insetRight="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
+                        android:singleLine="true"
                         android:text="@string/label_archive"
                         android:textColor="@color/money_subtab_text"
-                        android:textSize="12sp"
+                        android:textSize="11sp"
                         app:backgroundTint="@color/money_subtab_background"
                         app:cornerRadius="10dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnSubReports"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:insetLeft="0dp"
+                        android:insetRight="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="2dp"
+                        android:paddingEnd="2dp"
+                        android:singleLine="true"
+                        android:text="@string/tab_reports"
+                        android:textColor="@color/money_subtab_text"
+                        android:textSize="11sp"
+                        android:visibility="gone"
+                        app:backgroundTint="@color/money_subtab_background"
+                        app:cornerRadius="10dp"
+                        tools:visibility="visible" />
                 </LinearLayout>
 
                 <!-- Sub-panel 1: Expenses -->
@@ -1129,6 +1178,68 @@
                         android:paddingBottom="24dp"
                         tools:listitem="@layout/item_archive_period" />
                 </RelativeLayout>
+
+                <ScrollView
+                    android:id="@+id/panelSubReports"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginTop="12dp"
+                    android:fillViewport="true"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingBottom="24dp">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/reports_date_range_description"
+                            android:textColor="@color/ms_text_secondary"
+                            android:textSize="14sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnReportOpeningDate"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:minHeight="52dp"
+                            android:text="@string/report_select_opening_date"
+                            app:cornerRadius="12dp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnReportEndingDate"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:minHeight="52dp"
+                            android:text="@string/report_select_ending_date"
+                            app:cornerRadius="12dp" />
+
+                        <TextView
+                            android:id="@+id/tvReportStatus"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:textColor="@color/ms_text_secondary"
+                            android:textSize="13sp"
+                            android:visibility="gone" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnGenerateReport"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="18dp"
+                            android:minHeight="52dp"
+                            android:text="@string/generate_pdf_report"
+                            app:cornerRadius="12dp" />
+                    </LinearLayout>
+                </ScrollView>
             </LinearLayout>
         </LinearLayout>
 

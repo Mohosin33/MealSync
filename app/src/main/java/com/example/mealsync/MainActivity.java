@@ -1,6 +1,7 @@
 package com.example.mealsync;
 
 import android.Manifest;
+import android.app.DatePickerDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -29,12 +30,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -67,6 +70,9 @@ import com.example.mealsync.finance.FinanceResult;
 import com.example.mealsync.finance.MemberFinanceResult;
 import com.example.mealsync.notification.MealReminderScheduler;
 import com.example.mealsync.notification.SystemStateReceiver;
+import com.example.mealsync.reports.ReportData;
+import com.example.mealsync.reports.ReportPdfGenerator;
+import com.example.mealsync.reports.ReportRepository;
 import com.example.mealsync.sync.SyncWorker;
 import com.example.mealsync.ui.auth.AuthExtras;
 import com.example.mealsync.ui.auth.WelcomeActivity;
@@ -109,6 +115,8 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Source;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.text.DateFormat;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -140,6 +148,7 @@ public class MainActivity extends AppCompatActivity
     private final FinanceRepository financeRepository = new FinanceRepository();
     private final TimeCheckRepository timeCheckRepository = new TimeCheckRepository();
     private final ProfileRepository profileRepository = new ProfileRepository();
+    private final ReportRepository reportRepository = new ReportRepository();
 
     private UserProfile currentProfile;
     private Mess currentMess;
@@ -186,6 +195,11 @@ public class MainActivity extends AppCompatActivity
     private ShapeableImageView editProfilePhotoPreview;
     private AlertDialog editProfileDialog;
     private final ExecutorService profilePhotoExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService reportExecutor = Executors.newSingleThreadExecutor();
+    private String reportOpeningDate;
+    private String reportEndingDate;
+    private File generatedReportFile;
+    private boolean isGeneratingReport;
 
     private interface ProfilePhotoSaveCallback {
         void onSuccess();
@@ -242,6 +256,9 @@ public class MainActivity extends AppCompatActivity
                     }
                 }
             });
+    private final ActivityResultLauncher<String> savePdfLauncher =
+            registerForActivityResult(new ActivityResultContracts.CreateDocument("application/pdf"),
+                    uri -> saveGeneratedPdf(uri));
 
     private final Map<String, String> memberNamesMap = new HashMap<>();
     private final List<Member> activeMemberList = new ArrayList<>();
@@ -422,6 +439,17 @@ public class MainActivity extends AppCompatActivity
             showMoneySubPanel(R.id.panelSubArchive);
             loadArchivePeriods();
         });
+        binding.btnSubReports.setOnClickListener(v -> {
+            if (checkIsManager()) {
+                showMoneySubPanel(R.id.panelSubReports);
+            } else {
+                Snackbar.make(binding.mainRoot, R.string.report_not_available,
+                        Snackbar.LENGTH_LONG).show();
+            }
+        });
+        binding.btnReportOpeningDate.setOnClickListener(v -> showReportDatePicker(true));
+        binding.btnReportEndingDate.setOnClickListener(v -> showReportDatePicker(false));
+        binding.btnGenerateReport.setOnClickListener(v -> generatePdfReport());
 
         binding.fabAddExpense.setOnClickListener(v -> {
             if (currentMess != null) {
@@ -476,10 +504,12 @@ public class MainActivity extends AppCompatActivity
         binding.panelSubDeposits.setVisibility(panelId == R.id.panelSubDeposits ? View.VISIBLE : View.GONE);
         binding.panelSubSummary.setVisibility(panelId == R.id.panelSubSummary ? View.VISIBLE : View.GONE);
         binding.panelSubArchive.setVisibility(panelId == R.id.panelSubArchive ? View.VISIBLE : View.GONE);
+        binding.panelSubReports.setVisibility(panelId == R.id.panelSubReports ? View.VISIBLE : View.GONE);
         binding.btnSubExpenses.setSelected(panelId == R.id.panelSubExpenses);
         binding.btnSubDeposits.setSelected(panelId == R.id.panelSubDeposits);
         binding.btnSubSummary.setSelected(panelId == R.id.panelSubSummary);
         binding.btnSubArchive.setSelected(panelId == R.id.panelSubArchive);
+        binding.btnSubReports.setSelected(panelId == R.id.panelSubReports);
     }
 
     private void setupListeners() {
@@ -558,6 +588,10 @@ public class MainActivity extends AppCompatActivity
 
     private void setupFinanceAdapters() {
         boolean isManager = checkIsManager();
+        binding.btnSubReports.setVisibility(isManager ? View.VISIBLE : View.GONE);
+        if (!isManager && binding.panelSubReports.getVisibility() == View.VISIBLE) {
+            showMoneySubPanel(R.id.panelSubExpenses);
+        }
 
         expenseAdapter = new ExpenseAdapter(isManager, this::onExpenseLongClick);
         binding.rvExpenses.setLayoutManager(new LinearLayoutManager(this));
@@ -1316,6 +1350,212 @@ public class MainActivity extends AppCompatActivity
         binding.btnGuestPlus.setEnabled(enabled);
     }
 
+    private void showReportDatePicker(boolean openingDate) {
+        LocalDate initialDate = parseReportDate(openingDate ? reportOpeningDate : reportEndingDate);
+        if (initialDate == null) {
+            initialDate = LocalDate.now();
+        }
+        LocalDate selectedInitialDate = initialDate;
+        DatePickerDialog picker = new DatePickerDialog(this, (view, year, month, dayOfMonth) -> {
+            LocalDate selectedDate = LocalDate.of(year, month + 1, dayOfMonth);
+            String isoDate = selectedDate.toString();
+            if (openingDate) {
+                reportOpeningDate = isoDate;
+                binding.btnReportOpeningDate.setText(getString(R.string.report_opening_date_value,
+                        formatReportDate(selectedDate)));
+            } else {
+                reportEndingDate = isoDate;
+                binding.btnReportEndingDate.setText(getString(R.string.report_ending_date_value,
+                        formatReportDate(selectedDate)));
+            }
+            binding.tvReportStatus.setVisibility(View.GONE);
+        }, selectedInitialDate.getYear(), selectedInitialDate.getMonthValue() - 1,
+                selectedInitialDate.getDayOfMonth());
+        if (!openingDate && reportOpeningDate != null) {
+            LocalDate minDate = LocalDate.parse(reportOpeningDate);
+            java.util.Calendar minimum = java.util.Calendar.getInstance();
+            minimum.clear();
+            minimum.set(minDate.getYear(), minDate.getMonthValue() - 1, minDate.getDayOfMonth());
+            picker.getDatePicker().setMinDate(minimum.getTimeInMillis());
+        }
+        picker.show();
+    }
+
+    private LocalDate parseReportDate(String date) {
+        return date == null ? null : LocalDate.parse(date);
+    }
+
+    private String formatReportDate(LocalDate date) {
+        return date.format(DateTimeFormatter.ofPattern("d MMM yyyy", java.util.Locale.getDefault()));
+    }
+
+    private void generatePdfReport() {
+        if (!checkIsManager()) {
+            showReportError(R.string.report_not_available);
+            return;
+        }
+        if (currentMess == null || reportOpeningDate == null || reportEndingDate == null) {
+            showReportError(R.string.report_date_required);
+            return;
+        }
+        LocalDate opening = LocalDate.parse(reportOpeningDate);
+        LocalDate ending = LocalDate.parse(reportEndingDate);
+        if (ending.isBefore(opening)) {
+            showReportError(R.string.report_invalid_range);
+            return;
+        }
+        if (isGeneratingReport) {
+            return;
+        }
+
+        isGeneratingReport = true;
+        binding.btnGenerateReport.setEnabled(false);
+        binding.btnGenerateReport.setText(R.string.report_generating);
+        binding.tvReportStatus.setVisibility(View.VISIBLE);
+        binding.tvReportStatus.setText(R.string.report_generating);
+        reportRepository.generate(currentMess, reportOpeningDate, reportEndingDate,
+                new ReportRepository.Callback() {
+                    @Override
+                    public void onSuccess(ReportData report) {
+                        if (isFinishing() || isDestroyed()) return;
+                        reportExecutor.execute(() -> {
+                            try {
+                                File pdfFile = ReportPdfGenerator.generate(
+                                        getApplicationContext(), report);
+                                runOnUiThread(() -> {
+                                    if (isFinishing() || isDestroyed()) return;
+                                    generatedReportFile = pdfFile;
+                                    finishReportGeneration();
+                                    binding.tvReportStatus.setText(R.string.report_generated);
+                                    showReportReadyDialog(report, pdfFile);
+                                });
+                            } catch (IOException error) {
+                                Log.e("MainActivity", "Could not create report PDF", error);
+                                runOnUiThread(() -> {
+                                    if (isFinishing() || isDestroyed()) return;
+                                    finishReportGeneration();
+                                    showReportError(R.string.report_generation_failed);
+                                });
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFailure(Exception error) {
+                        Log.e("MainActivity", "Could not collect report data", error);
+                        if (isFinishing() || isDestroyed()) return;
+                        runOnUiThread(() -> {
+                            if (isFinishing() || isDestroyed()) return;
+                            finishReportGeneration();
+                            showReportError(R.string.report_generation_failed);
+                        });
+                    }
+                });
+    }
+
+    private void finishReportGeneration() {
+        isGeneratingReport = false;
+        binding.btnGenerateReport.setEnabled(true);
+        binding.btnGenerateReport.setText(R.string.generate_pdf_report);
+    }
+
+    private void showReportReadyDialog(ReportData report, File pdfFile) {
+        View dialogView = LayoutInflater.from(this)
+                .inflate(R.layout.dialog_report_ready, null);
+        TextView message = dialogView.findViewById(R.id.tvReportReadyMessage);
+        message.setText(getString(R.string.report_ready_message,
+                formatReportDate(LocalDate.parse(report.openingDate)),
+                formatReportDate(LocalDate.parse(report.endingDate))));
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setView(dialogView)
+                .create();
+        dialogView.findViewById(R.id.btnViewReportPdf).setOnClickListener(v -> {
+            dialog.dismiss();
+            viewGeneratedPdf(pdfFile);
+        });
+        dialogView.findViewById(R.id.btnShareReportPdf).setOnClickListener(v -> {
+            dialog.dismiss();
+            shareGeneratedPdf(pdfFile);
+        });
+        dialogView.findViewById(R.id.btnCancelReportPdf).setOnClickListener(v -> dialog.dismiss());
+        dialogView.findViewById(R.id.btnSaveReportPdf).setOnClickListener(v -> {
+            dialog.dismiss();
+            savePdfLauncher.launch(pdfFile.getName());
+        });
+        dialog.show();
+    }
+
+    private void showReportError(int messageResource) {
+        binding.tvReportStatus.setVisibility(View.VISIBLE);
+        binding.tvReportStatus.setText(messageResource);
+        Snackbar.make(binding.mainRoot, messageResource, Snackbar.LENGTH_LONG).show();
+    }
+
+    private void saveGeneratedPdf(Uri destination) {
+        File source = generatedReportFile;
+        if (destination == null || source == null || !source.isFile()) {
+            return;
+        }
+        reportExecutor.execute(() -> {
+            try (InputStream input = new java.io.FileInputStream(source);
+                 OutputStream output = getContentResolver().openOutputStream(destination)) {
+                if (output == null) {
+                    throw new IOException("Unable to open the selected destination.");
+                }
+                byte[] buffer = new byte[8192];
+                int count;
+                while ((count = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, count);
+                }
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) {
+                        Snackbar.make(binding.mainRoot, R.string.report_saved,
+                                Snackbar.LENGTH_LONG).show();
+                    }
+                });
+            } catch (IOException error) {
+                Log.e("MainActivity", "Could not save report PDF", error);
+                runOnUiThread(() -> {
+                    if (!isFinishing() && !isDestroyed()) {
+                        showReportError(R.string.report_save_failed);
+                    }
+                });
+            }
+        });
+    }
+
+    private void shareGeneratedPdf(File pdfFile) {
+        try {
+            Uri pdfUri = FileProvider.getUriForFile(this,
+                    getPackageName() + ".fileprovider", pdfFile);
+            Intent shareIntent = new Intent(Intent.ACTION_SEND)
+                    .setType("application/pdf")
+                    .putExtra(Intent.EXTRA_STREAM, pdfUri);
+            shareIntent.setClipData(ClipData.newUri(getContentResolver(), "PDF report", pdfUri));
+            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(shareIntent, getString(R.string.report_share)));
+        } catch (ActivityNotFoundException | IllegalArgumentException error) {
+            Log.e("MainActivity", "Could not share report PDF", error);
+            showReportError(R.string.report_share_failed);
+        }
+    }
+
+    private void viewGeneratedPdf(File pdfFile) {
+        try {
+            Uri pdfUri = FileProvider.getUriForFile(this,
+                    getPackageName() + ".fileprovider", pdfFile);
+            Intent viewIntent = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(pdfUri, "application/pdf")
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            viewIntent.setClipData(ClipData.newUri(getContentResolver(), "PDF report", pdfUri));
+            startActivity(Intent.createChooser(viewIntent, getString(R.string.report_view)));
+        } catch (ActivityNotFoundException | IllegalArgumentException error) {
+            Log.e("MainActivity", "Could not open report PDF", error);
+            showReportError(R.string.report_view_failed);
+        }
+    }
+
     private void populateProfileUI(UserProfile profile) {
         binding.tvProfileName.setText(profile.getDisplayName() != null ? profile.getDisplayName() : "User");
         binding.tvProfileEmail.setText(profile.getEmail() != null ? profile.getEmail() : "");
@@ -2032,6 +2272,7 @@ public class MainActivity extends AppCompatActivity
         if (archiveListener != null) archiveListener.remove();
         timeCheckRepository.close();
         profilePhotoExecutor.shutdown();
+        reportExecutor.shutdown();
         super.onDestroy();
     }
 }
