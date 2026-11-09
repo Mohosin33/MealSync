@@ -17,7 +17,7 @@ MealSync is an Android app for managing a shared household or “mess.” Manage
 
 Java · Android Views · View Binding · RecyclerView · Firebase · WorkManager
 
-The app also responds to airplane-mode changes, reads contacts with permission, and stores selected profile photos locally. It uses a scheduled notification
+The app also responds to airplane-mode changes, reads contacts with permission, and stores selected profile photos locally.
 
 ## Setup
 
